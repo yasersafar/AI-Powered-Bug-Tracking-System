@@ -341,7 +341,7 @@ The project follows an Agile process with one- to two-week sprints across two se
 
 ## Acknowledgements
 
-We thank Dr. Saqib Iqbal, Dr. Issam Al Azzoni, Prof. Zina Houhamdi, and Dr. Ayman Odeh, and the College of Engineering at Al Ain University for their guidance and support.
+We thank Dr. Saqib Iqbal, Dr. Issam Al Azzoni, Prof. Zina Houhamdi, Dr. Musab Hijazi and Dr. Ayman Odeh, and the College of Engineering at Al Ain University for their guidance and support.
 
 ---
 
