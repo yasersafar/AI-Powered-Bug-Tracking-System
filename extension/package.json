@@ -1,0 +1,43 @@
+{
+  "name": "ai-bug-tracker",
+  "displayName": "AI-Powered Bug Tracker",
+  "description": "Report bugs from VS Code and get an AI severity label.",
+  "version": "0.0.1",
+  "publisher": "capstone-team",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "bugTracker.reportBug",
+        "title": "Bug Tracker: Report a Bug"
+      }
+    ],
+    "configuration": {
+      "title": "Bug Tracker",
+      "properties": {
+        "bugTracker.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Address of the FastAPI backend."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "~1.90.0",
+    "typescript": "^5.6.0"
+  }
+}

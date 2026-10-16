@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+# Lets the tests do `from app.main import app` when pytest runs from backend/
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"

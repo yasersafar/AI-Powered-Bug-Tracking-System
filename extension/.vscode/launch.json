@@ -1,0 +1,15 @@
+{
+  // Press F5 (with the extension/ folder open in VS Code) to start a new
+  // "Extension Development Host" window with the extension loaded.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "npm: compile"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+# Needed by FastAPI's TestClient in the tests
+httpx==0.28.1
+
+# TODO(#11): add the database packages when you add the bugs table, e.g.
+#   sqlalchemy, psycopg[binary], alembic
+# TODO(#12): add scikit-learn and joblib when the severity model is loaded here.
