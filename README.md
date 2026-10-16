@@ -1,5 +1,6 @@
 # AI-Powered Bug Tracking System
 
+[![CI](https://github.com/yasersafar/AI-Powered-Bug-Tracking-System/actions/workflows/ci.yml/badge.svg)](https://github.com/yasersafar/AI-Powered-Bug-Tracking-System/actions/workflows/ci.yml)
 [![Status](https://img.shields.io/badge/status-in%20development-yellow)](#project-status)
 [![Platform](https://img.shields.io/badge/platform-VS%20Code-007ACC)](#architecture)
 [![Backend](https://img.shields.io/badge/backend-Python-3776AB)](#technology-stack)
