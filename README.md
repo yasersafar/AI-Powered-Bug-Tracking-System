@@ -27,6 +27,7 @@ Developed as a Software Engineering capstone project at the College of Engineeri
 - [Datasets and Evaluation](#datasets-and-evaluation)
 - [Repository Structure](#repository-structure)
 - [Getting Started](#getting-started)
+  - [Run the demo](#run-the-demo)
 - [Project Status](#project-status)
 - [Standards and Compliance](#standards-and-compliance)
 - [Scope](#scope)
@@ -277,14 +278,68 @@ The full specification defines **19 functional requirements**, **14 non-function
 
 ## Getting Started
 
-> Installation and usage instructions will be published once implementation begins in Capstone II.
-
-**Prerequisites (planned)**
+**Prerequisites**
 
 - Visual Studio Code
 - Node.js (LTS)
-- Python 3.10+
-- PostgreSQL or MySQL
+- Python 3.11+
+- Docker Desktop (runs PostgreSQL 16 for you)
+
+### Run the demo
+
+The demo flow is: VS Code bug form → FastAPI backend → severity label. Until the model is plugged in, every bug comes back as **Unclassified**.
+
+Run every command from the repository folder unless a step says otherwise.
+
+**1. Start the database**
+
+```bash
+cp .env.example .env
+docker compose up -d
+```
+
+`cp` makes your own `.env` settings file (it is never committed). `docker compose up -d` starts PostgreSQL 16 in the background. Check it with `docker compose ps`.
+
+**2. Start the backend** (in a new terminal)
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+This makes a private Python environment (`.venv`), installs the packages and starts the API at http://localhost:8000. Open http://localhost:8000/health. You should see `{"status":"ok"}`. Open http://localhost:8000/docs to try `POST /bugs` in the browser. On Windows, use `.venv\Scripts\activate` instead of `source .venv/bin/activate`.
+
+**3. Start the extension**
+
+```bash
+cd extension
+npm install
+```
+
+Then open the `extension/` folder in VS Code (File → Open Folder) and press **F5**. A second VS Code window opens with the extension loaded. In that window, press `Ctrl+Shift+P` (`Cmd+Shift+P` on Mac) and run **Bug Tracker: Report a Bug**.
+
+**4. Run the tests**
+
+```bash
+cd backend
+pytest
+```
+
+CI runs the same tests (plus `ruff check .`) on every pull request.
+
+**Who fills in what**
+
+| Part | File | Issue |
+|:--|:--|:--|
+| Bug form + call to the API | `extension/src/extension.ts` | #10 |
+| Save bugs in PostgreSQL | `backend/app/main.py` | #11 |
+| Severity model | `backend/app/severity.py`, `ml/severity/` | #12 |
+| "Unclassified" fallback | `backend/app/severity.py` | #13 |
+
+Search the code for `TODO(#` to find each spot.
 
 ---
 
