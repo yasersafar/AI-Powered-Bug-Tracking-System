@@ -1,0 +1,349 @@
+{
+  "name": "ai-bug-tracker",
+  "displayName": "AI-Powered Bug Tracker",
+  "description": "Report, triage and track bugs inside VS Code: real-time duplicate detection, automatic severity and developer recommendations.",
+  "version": "0.2.0",
+  "publisher": "aau-capstone",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1E3A8A",
+    "theme": "dark"
+  },
+  "private": true,
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yasersafar/AI-Powered-Bug-Tracking-System.git"
+  },
+  "homepage": "https://github.com/yasersafar/AI-Powered-Bug-Tracking-System#readme",
+  "bugs": {
+    "url": "https://github.com/yasersafar/AI-Powered-Bug-Tracking-System/issues"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "AI",
+    "Machine Learning",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "bug tracker",
+    "bug report",
+    "issue tracking",
+    "triage",
+    "duplicate detection",
+    "severity",
+    "machine learning",
+    "AI",
+    "project management",
+    "Al Ain University"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bugTracker",
+          "title": "Bug Tracker",
+          "icon": "media/bug.svg"
+        }
+      ]
+    },
+    "views": {
+      "bugTracker": [
+        {
+          "id": "bugTracker.actions",
+          "name": "Actions",
+          "contextualTitle": "Bug Tracker"
+        },
+        {
+          "id": "bugTracker.myBugs",
+          "name": "My Assigned Bugs",
+          "contextualTitle": "Bug Tracker"
+        },
+        {
+          "id": "bugTracker.projectBugs",
+          "name": "Project Bugs",
+          "contextualTitle": "Bug Tracker"
+        },
+        {
+          "id": "bugTracker.notifications",
+          "name": "Notifications",
+          "contextualTitle": "Bug Tracker"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "bugTracker.actions",
+        "contents": "Log in to use the Bug Tracker.\n[Log In](command:bugTracker.login)\n[Create Account](command:bugTracker.register)",
+        "when": "!bugTracker.loggedIn"
+      },
+      {
+        "view": "bugTracker.myBugs",
+        "contents": "Log in to see the bugs assigned to you.\n[Log In](command:bugTracker.login)\n[Create Account](command:bugTracker.register)\nServer: change it with [Set Server URL](command:bugTracker.setServerUrl).",
+        "when": "!bugTracker.loggedIn"
+      },
+      {
+        "view": "bugTracker.projectBugs",
+        "contents": "Log in to browse your projects' bugs.\n[Log In](command:bugTracker.login)",
+        "when": "!bugTracker.loggedIn"
+      },
+      {
+        "view": "bugTracker.notifications",
+        "contents": "Log in to receive assignment, status and critical-bug alerts.",
+        "when": "!bugTracker.loggedIn"
+      }
+    ],
+    "commands": [
+      {
+        "command": "bugTracker.login",
+        "title": "Log In",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.register",
+        "title": "Create Account",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.logout",
+        "title": "Log Out",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.reportBug",
+        "title": "Report Bug",
+        "category": "Bug Tracker",
+        "icon": "$(add)"
+      },
+      {
+        "command": "bugTracker.openBug",
+        "title": "Open Bug…",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.openBugById",
+        "title": "Open Bug",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.searchBugs",
+        "title": "Search Bugs",
+        "category": "Bug Tracker",
+        "icon": "$(search)"
+      },
+      {
+        "command": "bugTracker.openDashboard",
+        "title": "Open Dashboard",
+        "category": "Bug Tracker",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "bugTracker.adminProfiles",
+        "title": "Admin: Manage Developer Profiles",
+        "category": "Bug Tracker",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "bugTracker.myProfile",
+        "title": "My Profile and Notifications",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.createProject",
+        "title": "Create Project",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.addProjectMember",
+        "title": "Add Project Member",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.openNotification",
+        "title": "Open Notification",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.markAllNotificationsRead",
+        "title": "Mark All Notifications as Read",
+        "category": "Bug Tracker",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "bugTracker.refresh",
+        "title": "Refresh",
+        "category": "Bug Tracker",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "bugTracker.setServerUrl",
+        "title": "Set Server URL",
+        "category": "Bug Tracker"
+      },
+      {
+        "command": "bugTracker.checkConnection",
+        "title": "Check Server Connection",
+        "category": "Bug Tracker"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "bugTracker.login",
+          "when": "!bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.register",
+          "when": "!bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.logout",
+          "when": "bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.reportBug",
+          "when": "bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.openBug",
+          "when": "bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.searchBugs",
+          "when": "bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.openDashboard",
+          "when": "bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.adminProfiles",
+          "when": "bugTracker.isAdmin"
+        },
+        {
+          "command": "bugTracker.myProfile",
+          "when": "bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.createProject",
+          "when": "bugTracker.canManageProjects"
+        },
+        {
+          "command": "bugTracker.addProjectMember",
+          "when": "bugTracker.canManageProjects"
+        },
+        {
+          "command": "bugTracker.markAllNotificationsRead",
+          "when": "bugTracker.loggedIn"
+        },
+        {
+          "command": "bugTracker.openBugById",
+          "when": "false"
+        },
+        {
+          "command": "bugTracker.openNotification",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "bugTracker.reportBug",
+          "when": "view == bugTracker.myBugs && bugTracker.loggedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "bugTracker.searchBugs",
+          "when": "view == bugTracker.myBugs && bugTracker.loggedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "bugTracker.refresh",
+          "when": "view == bugTracker.myBugs && bugTracker.loggedIn",
+          "group": "navigation@3"
+        },
+        {
+          "command": "bugTracker.reportBug",
+          "when": "view == bugTracker.projectBugs && bugTracker.loggedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "bugTracker.openDashboard",
+          "when": "view == bugTracker.projectBugs && bugTracker.loggedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "bugTracker.refresh",
+          "when": "view == bugTracker.projectBugs && bugTracker.loggedIn",
+          "group": "navigation@3"
+        },
+        {
+          "command": "bugTracker.adminProfiles",
+          "when": "view == bugTracker.projectBugs && bugTracker.isAdmin",
+          "group": "navigation@4"
+        },
+        {
+          "command": "bugTracker.markAllNotificationsRead",
+          "when": "view == bugTracker.notifications && bugTracker.loggedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "bugTracker.myProfile",
+          "when": "view == bugTracker.notifications && bugTracker.loggedIn",
+          "group": "overflow"
+        },
+        {
+          "command": "bugTracker.logout",
+          "when": "view == bugTracker.myBugs && bugTracker.loggedIn",
+          "group": "overflow"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Bug Tracker",
+      "properties": {
+        "bugTracker.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "format": "uri",
+          "markdownDescription": "Base URL of the Bug Tracker backend (no trailing `/api/v1`)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"media/**/*.{js,css}\" \"*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"media/**/*.{js,css}\" \"*.mjs\"",
+    "vscode:prepublish": "npm run build",
+    "pretest": "npm run build && node esbuild.mjs --tests",
+    "test": "node ./out-test/runTest.js",
+    "package": "vsce package --no-dependencies --skip-license --no-rewrite-relative-links",
+    "preview": "node esbuild.mjs --preview && node out-test/preview/render.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.20.5",
+    "@types/vscode": "~1.100.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.1",
+    "axe-core": "^4.14.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "mocha": "^12.0.3",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0"
+  }
+}
