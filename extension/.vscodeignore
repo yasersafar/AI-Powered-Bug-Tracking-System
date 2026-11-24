@@ -1,0 +1,16 @@
+.vscode/**
+.vscode-test/**
+src/**
+test/**
+node_modules/**
+**/*.map
+**/*.ts
+esbuild.mjs
+eslint.config.mjs
+tsconfig.json
+.prettierrc.json
+out-test/**
+**/.DS_Store
+*.vsix
+out-preview/**
+media/icon.svg
