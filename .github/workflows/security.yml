@@ -52,13 +52,16 @@ jobs:
         if: env.SNYK_TOKEN != ''
         run: npm install --global snyk
 
+      # Snyk's pip scanner reads requirements files, not pyproject.toml, so the backend's
+      # declared dependencies are written to a temporary requirements file first.
       - name: Snyk Open Source (dependencies)
         if: env.SNYK_TOKEN != ''
         run: |
-          snyk test --file=backend/pyproject.toml --package-manager=pip --command=python --severity-threshold=high
+          python -c "import tomllib; p = tomllib.load(open('backend/pyproject.toml', 'rb'))['project']; open('backend/requirements-snyk.txt', 'w').write('\n'.join(p['dependencies'] + p['optional-dependencies']['dev']) + '\n')"
+          snyk test --file=backend/requirements-snyk.txt --package-manager=pip --command=python --severity-threshold=high
           snyk test --file=ml/requirements.txt --package-manager=pip --command=python --severity-threshold=high
           snyk test --file=extension/package-lock.json --severity-threshold=high
 
       - name: Snyk Code (static analysis)
-        if: env.SNYK_TOKEN != ''
+        if: ${{ !cancelled() && env.SNYK_TOKEN != '' }}
         run: snyk code test --severity-threshold=high
