@@ -1,0 +1,11 @@
+# Tool configuration for the ml package (dependencies: requirements*.txt).
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+pythonpath = [".."]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+# Run from the repository root:  mypy --config-file ml/pyproject.toml -p ml
