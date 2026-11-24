@@ -58,10 +58,13 @@ jobs:
         if: env.SNYK_TOKEN != ''
         run: |
           python -c "import tomllib; p = tomllib.load(open('backend/pyproject.toml', 'rb'))['project']; open('backend/requirements-snyk.txt', 'w').write('\n'.join(p['dependencies'] + p['optional-dependencies']['dev']) + '\n')"
-          snyk test --file=backend/requirements-snyk.txt --package-manager=pip --command=python --severity-threshold=high
-          snyk test --file=ml/requirements.txt --package-manager=pip --command=python --severity-threshold=high
-          snyk test --file=extension/package-lock.json --severity-threshold=high
+          # Scan all three parts even if one fails, then fail the step if any of them failed.
+          status=0
+          snyk test --file=backend/requirements-snyk.txt --package-manager=pip --command=python --severity-threshold=high || status=1
+          snyk test --file=ml/requirements.txt --package-manager=pip --command=python --severity-threshold=high || status=1
+          snyk test --file=extension/package-lock.json --severity-threshold=high || status=1
+          exit $status
 
       - name: Snyk Code (static analysis)
         if: ${{ !cancelled() && env.SNYK_TOKEN != '' }}
-        run: snyk code test --severity-threshold=high
+        run: snyk code test --org=yasersafar --severity-threshold=high
