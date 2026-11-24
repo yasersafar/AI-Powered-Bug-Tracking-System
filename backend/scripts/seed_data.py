@@ -1,0 +1,692 @@
+"""Hand-written demo data for `make seed`. Not used for any model training or evaluation.
+
+Each bug: (key, project, title, description, steps, environment, components, severity, plan).
+Plans:
+  ("closed", developer, days_ago, hours_to_assign, hours_to_fix)   resolved, verified, closed
+  ("resolved" | "verified" | "in_progress", developer, days_ago, hours_to_assign, hours_to_fix)
+  ("open", None, days_ago)
+  ("duplicate_open", original_key, days_ago)      open; a near-duplicate for the demo
+  ("duplicate_closed", original_key, days_ago)    closed by the PM as a duplicate
+  ("tossed", [first, second], days_ago)           reassigned once, still in progress
+  ("reopened", developer, days_ago, hours_to_assign, hours_to_fix)   failed verification
+"""
+
+from typing import Any
+
+PAY = "Payments Platform"
+MOB = "Mobile App"
+
+USERS = [
+    # (key, full name, e-mail, global role)
+    ("admin", "Amina Admin", "admin@example.com", "Administrator"),
+    ("pm", "Pat Manager", "pm@example.com", "ProjectManager"),
+    ("dana", "Dana Lee", "dana@example.com", "Developer"),
+    ("omar", "Omar Haddad", "omar@example.com", "Developer"),
+    ("sara", "Sara Kim", "sara@example.com", "Developer"),
+    ("leo", "Leo Novak", "leo@example.com", "Developer"),
+    ("rita", "Rita Reporter", "rita@example.com", "Reporter"),
+    ("quinn", "Quinn QA", "quinn@example.com", "Reporter"),
+]
+
+PROJECTS = [
+    (
+        PAY,
+        "Checkout, payment processing and invoicing services.",
+        {
+            "dana": "Developer",
+            "omar": "Developer",
+            "leo": "Developer",
+            "rita": "Reporter",
+            "quinn": "Reporter",
+        },
+    ),
+    (
+        MOB,
+        "iOS/Android companion app with offline sync.",
+        {
+            "sara": "Developer",
+            "omar": "Developer",
+            "leo": "Developer",
+            "dana": "Developer",
+            "rita": "Reporter",
+            "quinn": "Reporter",
+        },
+    ),
+]
+
+PROFILES = {
+    # key: (skills, components, languages, experience, availability, max_workload)
+    "dana": (
+        ["python", "sql", "postgresql", "rest api", "stripe"],
+        ["payments-api", "checkout", "invoices"],
+        ["python", "sql"],
+        "Senior",
+        "Available",
+        6,
+    ),
+    "omar": (
+        ["typescript", "react", "css", "accessibility"],
+        ["checkout-ui", "ui", "notifications"],
+        ["typescript", "javascript"],
+        "Mid",
+        "Available",
+        5,
+    ),
+    "sara": (
+        ["kotlin", "swift", "sqlite", "sync"],
+        ["sync", "offline", "ui"],
+        ["kotlin", "swift"],
+        "Mid",
+        "Limited",
+        4,
+    ),
+    # The new hire: no history at all -> pure profile matching (cold start, alpha = 0).
+    "leo": (
+        ["python", "oauth", "jwt", "security", "auth"],
+        ["auth", "login", "sessions"],
+        ["python", "go"],
+        "Junior",
+        "Available",
+        3,
+    ),
+}
+
+ENV_WEB = "Chrome 131 on Windows 11, production"
+ENV_API = "payments-api v2.14, Kubernetes, PostgreSQL 16"
+ENV_IOS = "iOS 19.1, iPhone 15, app v3.8.0"
+ENV_AND = "Android 16, Pixel 9, app v3.8.0"
+
+BUGS: list[tuple[Any, ...]] = [
+    # ------------------------------------------------------------ Payments: history (Dana)
+    (
+        "p01",
+        PAY,
+        "Refund API returns 500 for partially captured payments",
+        "Calling POST /refunds for a payment that was only partially captured fails with HTTP 500. "
+        "The log shows a division by zero when computing the refundable amount.",
+        "1. Capture 50% of an authorised payment\n2. Request a refund of 10 EUR\n3. Observe 500",
+        ENV_API,
+        ["payments-api"],
+        "High",
+        ("closed", "dana", 58, 3, 20),
+    ),
+    (
+        "p02",
+        PAY,
+        "Invoice PDF shows wrong VAT rate for Belgian customers",
+        "Invoices for customers with a Belgian VAT number show 19% instead of 21%. The country "
+        "code lookup falls back to the German default rate.",
+        "1. Create a customer with country BE\n2. Generate an invoice\n3. Open the PDF",
+        ENV_API,
+        ["invoices"],
+        "Medium",
+        ("closed", "dana", 55, 6, 30),
+    ),
+    (
+        "p03",
+        PAY,
+        "Duplicate charge when the user double-clicks Pay",
+        "A fast double click on the Pay button sends two charge requests and the card is charged "
+        "twice. The idempotency key is generated per click instead of per checkout session.",
+        "1. Open checkout\n2. Double-click Pay quickly\n3. Check the card statement",
+        ENV_WEB,
+        ["checkout", "payments-api"],
+        "Critical",
+        ("closed", "dana", 52, 1, 6),
+    ),
+    (
+        "p04",
+        PAY,
+        "Webhook signature check fails after secret rotation",
+        "After rotating the webhook signing secret, all incoming provider webhooks are rejected "
+        "with 401 because the old secret is cached until the pod restarts.",
+        "1. Rotate the signing secret\n2. Trigger a test webhook\n3. See 401 in the logs",
+        ENV_API,
+        ["payments-api"],
+        "High",
+        ("closed", "dana", 49, 2, 12),
+    ),
+    (
+        "p05",
+        PAY,
+        "Currency rounding error on JPY amounts",
+        "Amounts in JPY are multiplied by 100 like two-decimal currencies, so a 1,000 JPY order "
+        "is sent to the provider as 100,000 JPY and declined.",
+        "1. Set store currency to JPY\n2. Pay an order of 1000 JPY\n3. Payment declined",
+        ENV_API,
+        ["payments-api", "checkout"],
+        "Critical",
+        ("closed", "dana", 46, 1, 8),
+    ),
+    (
+        "p06",
+        PAY,
+        "Invoice numbers skip values after a failed payment",
+        "The invoice sequence is incremented before the payment succeeds, so failed payments "
+        "leave gaps in invoice numbers, which our auditors flag.",
+        "1. Start checkout\n2. Use a card that is declined\n3. Pay again successfully",
+        ENV_API,
+        ["invoices"],
+        "Medium",
+        ("closed", "dana", 43, 8, 40),
+    ),
+    (
+        "p07",
+        PAY,
+        "Settlement report times out for merchants with many payouts",
+        "The daily settlement report query takes longer than 30 seconds for merchants with more "
+        "than 20,000 payouts and the request times out.",
+        "1. Open Reports > Settlement for merchant 4411\n2. Select last month\n3. Wait",
+        ENV_API,
+        ["payments-api"],
+        "Medium",
+        ("closed", "dana", 40, 12, 36),
+    ),
+    (
+        "p08",
+        PAY,
+        "Saved card expiry not updated after card network update",
+        "When the card network sends an account updater notification, the stored expiry date is "
+        "not changed and the next recurring charge fails.",
+        "1. Simulate an account updater event\n2. Check the saved card\n3. Expiry is unchanged",
+        ENV_API,
+        ["payments-api"],
+        "High",
+        ("closed", "dana", 36, 4, 18),
+    ),
+    (
+        "p09",
+        PAY,
+        "Credit note total ignores discount lines",
+        "Credit notes created from a discounted invoice refund the full undiscounted amount "
+        "because discount lines are skipped when copying invoice items.",
+        "1. Create an invoice with a 10% discount\n2. Create a credit note from it",
+        ENV_API,
+        ["invoices"],
+        "High",
+        ("closed", "dana", 31, 3, 14),
+    ),
+    (
+        "p10",
+        PAY,
+        "Payment status stuck in pending after 3-D Secure",
+        "Payments that require 3-D Secure stay in pending even after the customer completes the "
+        "challenge, because the return URL handler does not poll the provider.",
+        "1. Pay with a 3DS test card\n2. Complete the challenge\n3. Order stays pending",
+        ENV_WEB,
+        ["checkout", "payments-api"],
+        "Critical",
+        ("closed", "dana", 27, 1, 5),
+    ),
+    (
+        "p11",
+        PAY,
+        "Tax ID validation rejects valid Swiss UID numbers",
+        "Swiss UID numbers in the format CHE-123.456.789 are rejected by the VAT validator because "
+        "it only accepts EU country prefixes.",
+        "1. Enter CHE-123.456.789 as tax ID\n2. Save the customer profile",
+        ENV_WEB,
+        ["invoices"],
+        "Low",
+        ("closed", "dana", 22, 24, 10),
+    ),
+    (
+        "p12",
+        PAY,
+        "Payout batch job retries forever on a closed bank account",
+        "When a merchant's bank account is closed, the payout batch keeps retrying every minute "
+        "and floods the error channel instead of marking the payout as failed.",
+        "1. Close the merchant bank account in the sandbox\n2. Run the payout batch",
+        ENV_API,
+        ["payments-api"],
+        "High",
+        ("closed", "dana", 18, 2, 16),
+    ),
+    # ------------------------------------------------------------ Payments: history (Omar)
+    (
+        "p13",
+        PAY,
+        "Checkout button not reachable with keyboard",
+        "The Pay button cannot be focused with the Tab key because it is a div with a click "
+        "handler, so keyboard and screen-reader users cannot complete checkout.",
+        "1. Open checkout\n2. Press Tab repeatedly\n3. Focus never reaches Pay",
+        ENV_WEB,
+        ["checkout-ui"],
+        "High",
+        ("closed", "omar", 57, 4, 10),
+    ),
+    (
+        "p14",
+        PAY,
+        "Card number field accepts letters",
+        "The card number input accepts letters and only shows an error after submitting, which "
+        "confuses users on mobile keyboards.",
+        "1. Type 'abcd' into the card number field\n2. Press Pay",
+        ENV_WEB,
+        ["checkout-ui"],
+        "Low",
+        ("closed", "omar", 50, 30, 6),
+    ),
+    (
+        "p15",
+        PAY,
+        "Price summary flickers when changing shipping method",
+        "Switching the shipping method briefly shows a total of 0.00 before the new total "
+        "appears, because the summary renders before the shipping quote resolves.",
+        "1. Add an item to the cart\n2. Switch between shipping methods",
+        ENV_WEB,
+        ["checkout-ui"],
+        "Low",
+        ("closed", "omar", 44, 20, 8),
+    ),
+    (
+        "p16",
+        PAY,
+        "Error message for declined cards is not announced to screen readers",
+        "When a card is declined the red error text appears but has no live region, so screen "
+        "reader users do not know the payment failed.",
+        "1. Enable VoiceOver\n2. Pay with a declined test card",
+        ENV_WEB,
+        ["checkout-ui"],
+        "Medium",
+        ("closed", "omar", 38, 6, 12),
+    ),
+    (
+        "p17",
+        PAY,
+        "Order confirmation e-mail shows raw HTML entities",
+        "Product names with ampersands appear as &amp; in the order confirmation e-mail subject.",
+        "1. Buy 'Salt & Pepper Set'\n2. Open the confirmation e-mail",
+        ENV_API,
+        ["notifications"],
+        "Low",
+        ("closed", "omar", 33, 48, 4),
+    ),
+    (
+        "p18",
+        PAY,
+        "Dark mode makes coupon field text invisible",
+        "In dark mode the coupon input uses black text on a dark grey background.",
+        "1. Enable dark mode in the OS\n2. Open checkout\n3. Type into the coupon field",
+        ENV_WEB,
+        ["checkout-ui"],
+        "Low",
+        ("closed", "omar", 25, 10, 3),
+    ),
+    # ------------------------------------------------------------ Mobile: history (Omar, Sara)
+    (
+        "m01",
+        MOB,
+        "Push notification opens the wrong screen",
+        "Tapping an order-shipped notification opens the home screen instead of the order "
+        "details, because the deep link uses the old route name.",
+        "1. Trigger an order-shipped push\n2. Tap the notification",
+        ENV_IOS,
+        ["notifications", "ui"],
+        "Medium",
+        ("closed", "omar", 54, 8, 9),
+    ),
+    (
+        "m02",
+        MOB,
+        "Settings toggles lose state after app restart",
+        "Notification toggles in Settings revert to their defaults after the app is force-closed.",
+        "1. Turn off marketing notifications\n2. Force close the app\n3. Reopen Settings",
+        ENV_AND,
+        ["ui"],
+        "Low",
+        ("closed", "omar", 47, 16, 6),
+    ),
+    (
+        "m03",
+        MOB,
+        "Text truncated on small screens in order list",
+        "Order titles are cut after 10 characters on devices narrower than 360 dp.",
+        "1. Use a 320 dp emulator\n2. Open Orders",
+        ENV_AND,
+        ["ui"],
+        "Low",
+        ("closed", "omar", 35, 30, 5),
+    ),
+    (
+        "m04",
+        MOB,
+        "Offline edits overwritten after reconnect",
+        "Changes made while offline are lost when the app reconnects, because the server copy "
+        "wins the conflict even when it is older.",
+        "1. Go offline\n2. Edit a note\n3. Reconnect\n4. The edit disappears",
+        ENV_AND,
+        ["sync", "offline"],
+        "High",
+        ("closed", "sara", 53, 3, 26),
+    ),
+    (
+        "m05",
+        MOB,
+        "Sync never finishes when more than 500 items changed",
+        "Initial sync loops forever if the server returns more than 500 changed items, because "
+        "the pagination cursor is not advanced.",
+        "1. Create 600 items on the web\n2. Log in on a new phone",
+        ENV_IOS,
+        ["sync"],
+        "High",
+        ("closed", "sara", 41, 5, 30),
+    ),
+    (
+        "m06",
+        MOB,
+        "Background sync drains battery",
+        "Background sync runs every minute instead of every 15 minutes on Android 16, using about "
+        "8% battery per hour.",
+        "1. Leave the app in the background for one hour\n2. Check battery usage",
+        ENV_AND,
+        ["sync"],
+        "Medium",
+        ("closed", "sara", 30, 12, 20),
+    ),
+    (
+        "m07",
+        MOB,
+        "Local database migration crashes on upgrade from v3.6",
+        "Upgrading directly from v3.6 to v3.8 crashes on launch because migration 14 assumes a "
+        "column added in v3.7.",
+        "1. Install v3.6\n2. Upgrade to v3.8\n3. Launch the app",
+        ENV_IOS,
+        ["offline"],
+        "Critical",
+        ("closed", "sara", 20, 1, 7),
+    ),
+    # ------------------------------------------------------------ Payments: active work
+    (
+        "p19",
+        PAY,
+        "Apple Pay sheet does not open on Safari 19",
+        "Clicking the Apple Pay button on Safari 19 does nothing. The console shows that "
+        "ApplePaySession.canMakePayments is called before the merchant validation completes.",
+        "1. Open checkout in Safari 19 on macOS\n2. Click Apple Pay",
+        "Safari 19 on macOS 26",
+        ["checkout-ui", "checkout"],
+        "High",
+        ("in_progress", "omar", 4, 2, 0),
+    ),
+    (
+        "p20",
+        PAY,
+        "Invoice e-mail not sent when the customer has two e-mail addresses",
+        "Customers with a billing e-mail and an account e-mail receive no invoice at all; the "
+        "mailer fails validation on the comma-joined address list.",
+        "1. Add a billing e-mail to a customer\n2. Generate an invoice",
+        ENV_API,
+        ["invoices", "notifications"],
+        "Medium",
+        ("in_progress", "dana", 6, 5, 0),
+    ),
+    (
+        "p21",
+        PAY,
+        "Login session expires during long checkout",
+        "Users who spend more than 20 minutes in checkout are logged out when they press Pay and "
+        "lose their cart, because the refresh token is not renewed on checkout pages.",
+        "1. Log in\n2. Stay on the checkout page for 25 minutes\n3. Press Pay",
+        ENV_WEB,
+        ["auth", "sessions", "checkout"],
+        "High",
+        ("open", None, 2),
+    ),
+    (
+        "p22",
+        PAY,
+        "OAuth login with Google fails for accounts with plus addressing",
+        "Signing in with a Google account like name+shop@example.com fails with 'invalid e-mail' "
+        "because the callback handler URL-decodes the plus sign into a space.",
+        "1. Choose 'Sign in with Google'\n2. Use an address containing +",
+        ENV_WEB,
+        ["auth", "login"],
+        "Medium",
+        ("open", None, 1),
+    ),
+    (
+        "p23",
+        PAY,
+        "Refund confirmation shows amount in cents",
+        "After issuing a refund the confirmation banner shows 'Refunded 1250' instead of "
+        "'Refunded 12.50 EUR'.",
+        "1. Refund 12.50 EUR on any payment\n2. Read the confirmation banner",
+        ENV_WEB,
+        ["checkout-ui"],
+        "Low",
+        ("open", None, 3),
+    ),
+    (
+        "p24",
+        PAY,
+        "Payment provider timeout is not retried",
+        "A single timeout from the payment provider marks the order as failed without retrying, "
+        "even though the provider documentation recommends one idempotent retry.",
+        "1. Inject a 30 s delay in the provider sandbox\n2. Pay an order",
+        ENV_API,
+        ["payments-api"],
+        "High",
+        ("resolved", "dana", 8, 2, 30),
+    ),
+    (
+        "p25",
+        PAY,
+        "Discount codes are case sensitive",
+        "Code SUMMER10 works but summer10 is rejected as invalid.",
+        "1. Enter 'summer10' in the coupon field\n2. Apply",
+        ENV_WEB,
+        ["checkout"],
+        "Low",
+        ("verified", "omar", 9, 6, 10),
+    ),
+    # Duplicates of history bugs (for the duplicate-detection demo)
+    (
+        "p26",
+        PAY,
+        "Customer charged twice after clicking pay button two times",
+        "A customer reports two identical charges on their card. They clicked the Pay button "
+        "twice because the page looked frozen.",
+        "1. Open checkout on a slow network\n2. Click Pay twice",
+        ENV_WEB,
+        ["checkout"],
+        "Critical",
+        ("duplicate_closed", "p03", 12),
+    ),
+    (
+        "p27",
+        PAY,
+        "3DS payments remain pending forever",
+        "Orders paid with cards that need 3-D Secure verification never leave the pending state "
+        "after the bank challenge is completed.",
+        "1. Pay with a 3-D Secure card\n2. Approve in the banking app\n3. Order still pending",
+        ENV_WEB,
+        ["checkout"],
+        "High",
+        ("duplicate_open", "p10", 1),
+    ),
+    (
+        "p28",
+        PAY,
+        "Wrong VAT percentage on invoices for Belgium",
+        "Belgian business customers receive invoices with 19 percent VAT instead of 21 percent.",
+        "1. Bill a Belgian customer\n2. Check the VAT line on the invoice",
+        ENV_API,
+        ["invoices"],
+        "Medium",
+        ("duplicate_open", "p02", 0),
+    ),
+    # ------------------------------------------------------------ Mobile: active work
+    (
+        "m08",
+        MOB,
+        "Login with fingerprint fails after OS update",
+        "After updating to Android 16 the biometric login prompt closes immediately and falls "
+        "back to the password screen.",
+        "1. Enable fingerprint login\n2. Update to Android 16\n3. Reopen the app",
+        ENV_AND,
+        ["auth", "login"],
+        "High",
+        ("open", None, 2),
+    ),
+    (
+        "m09",
+        MOB,
+        "Photos attached offline are uploaded twice",
+        "Photos added to an order while offline appear twice after the app reconnects.",
+        "1. Go offline\n2. Attach a photo\n3. Reconnect",
+        ENV_IOS,
+        ["sync", "offline"],
+        "Medium",
+        ("tossed", ["omar", "sara"], 7),
+    ),
+    (
+        "m10",
+        MOB,
+        "Order list scroll position resets after pull to refresh",
+        "Pulling to refresh the order list jumps back to the top even when no new orders arrived.",
+        "1. Scroll down the order list\n2. Pull to refresh",
+        ENV_IOS,
+        ["ui"],
+        "Low",
+        ("open", None, 5),
+    ),
+    (
+        "m11",
+        MOB,
+        "Conflict dialog shows the same version twice",
+        "When a sync conflict happens, both options in the conflict dialog show the local version, "
+        "so the user cannot choose the server copy.",
+        "1. Edit the same note on two devices offline\n2. Bring both online",
+        ENV_AND,
+        ["sync", "ui"],
+        "Medium",
+        ("reopened", "sara", 10, 4, 20),
+    ),
+    (
+        "m12",
+        MOB,
+        "Push notifications not received on iOS after reinstall",
+        "After reinstalling the app on iOS no push notifications arrive until the user logs out "
+        "and in again, because the device token is not re-registered.",
+        "1. Delete the app\n2. Reinstall and log in\n3. Trigger a push",
+        ENV_IOS,
+        ["notifications"],
+        "Medium",
+        ("in_progress", "omar", 3, 6, 0),
+    ),
+    (
+        "m13",
+        MOB,
+        "App crashes when opening a shared link while logged out",
+        "Opening a shared order link when not logged in crashes the app with a null pointer "
+        "exception in the deep-link router.",
+        "1. Log out\n2. Tap a shared order link",
+        ENV_AND,
+        ["ui", "auth"],
+        "Critical",
+        ("open", None, 0),
+    ),
+    (
+        "m14",
+        MOB,
+        "Edits made offline disappear when the phone reconnects",
+        "I changed a note in airplane mode and when I turned the network back on my change was "
+        "gone and the old text came back.",
+        "1. Turn on airplane mode\n2. Edit a note\n3. Turn airplane mode off",
+        ENV_IOS,
+        ["sync"],
+        "High",
+        ("duplicate_open", "m04", 1),
+    ),
+    (
+        "m15",
+        MOB,
+        "Password reset link opens the browser instead of the app",
+        "The password reset e-mail link opens Safari and shows a 404 instead of opening the app.",
+        "1. Request a password reset\n2. Tap the link in Mail",
+        ENV_IOS,
+        ["auth"],
+        "Medium",
+        ("open", None, 4),
+    ),
+    (
+        "m16",
+        MOB,
+        "Sync status icon spins forever when the server returns 304",
+        "The sync indicator never stops spinning if the server answers 304 Not Modified.",
+        "1. Open the app with no remote changes\n2. Watch the sync icon",
+        ENV_AND,
+        ["sync", "ui"],
+        "Low",
+        ("open", None, 6),
+    ),
+    (
+        "m17",
+        MOB,
+        "Large fonts overlap buttons on the checkout screen",
+        "With the largest accessibility font size the Pay and Cancel buttons overlap.",
+        "1. Set system font size to maximum\n2. Open checkout in the app",
+        ENV_IOS,
+        ["ui"],
+        "Medium",
+        ("open", None, 3),
+    ),
+    (
+        "m18",
+        MOB,
+        "Deleted items come back after sync",
+        "Items deleted on the phone reappear after the next sync because deletions are not "
+        "sent as tombstones.",
+        "1. Delete an item\n2. Wait for sync\n3. The item is back",
+        ENV_AND,
+        ["sync", "offline"],
+        "High",
+        ("in_progress", "sara", 5, 3, 0),
+    ),
+    (
+        "m19",
+        MOB,
+        "Session cookie not cleared on logout in the in-app browser",
+        "After logging out, opening Help in the in-app browser still shows the previous user's "
+        "account page.",
+        "1. Log in\n2. Log out\n3. Open Help",
+        ENV_IOS,
+        ["auth", "sessions"],
+        "High",
+        ("open", None, 1),
+    ),
+    (
+        "m20",
+        MOB,
+        "Badge count does not reset after reading notifications",
+        "The app icon badge keeps showing 3 after all notifications have been read in the app.",
+        "1. Receive three notifications\n2. Read them in the app\n3. Check the icon badge",
+        ENV_IOS,
+        ["notifications"],
+        "Low",
+        ("open", None, 8),
+    ),
+    (
+        "m21",
+        MOB,
+        "Map in store locator is blank on Android",
+        "The store locator shows a grey area instead of the map on Android 16 devices.",
+        "1. Open Stores\n2. Allow location access",
+        ENV_AND,
+        ["ui"],
+        "Medium",
+        ("open", None, 9),
+    ),
+    (
+        "m22",
+        MOB,
+        "Cannot log in when password contains an emoji",
+        "Passwords containing emoji are rejected at login although they were accepted at sign-up.",
+        "1. Sign up with a password containing an emoji\n2. Log out and log in",
+        ENV_AND,
+        ["auth", "login"],
+        "Low",
+        ("open", None, 11),
+    ),
+]
