@@ -1,0 +1,5626 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AI-Powered Bug Tracking System",
+    "description": "REST API for the AI-Powered Bug Tracking System: bug lifecycle management plus an integrated triage pipeline (duplicate detection, severity classification, developer assignment). All business routes are under `/api/v1`.\n\nErrors always have the shape `{code, message, details}`.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness check",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register a new account (role: Reporter)",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "E-mail already registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Log in and receive an 8-hour bearer token",
+        "description": "OAuth2 password flow: send `username` (the e-mail) and `password` as form fields. Rate limited per client IP.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_api_v1_auth_login_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong e-mail or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Current user's profile",
+        "operationId": "read_me_api_v1_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMe"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Edit own name and notification preferences",
+        "operationId": "update_me_api_v1_users_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMe"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/password": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Change own password",
+        "description": "All previously issued tokens stop working; a fresh token is returned.",
+        "operationId": "change_password_api_v1_users_me_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Search active users (Project Managers and Administrators)",
+        "description": "Used to find people to add to a project. Matches e-mail or name.",
+        "operationId": "search_users_api_v1_users_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "title": "Q",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_UserSummary_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Change a user's global role or active flag (Administrator)",
+        "operationId": "admin_update_user_api_v1_users__user_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}/audit": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Account audit history (Administrator)",
+        "operationId": "user_audit_api_v1_users__user_id__audit_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEntryRead"
+                  },
+                  "title": "Response User Audit Api V1 Users  User Id  Audit Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create a project (Project Manager / Administrator); creator becomes its PM",
+        "operationId": "create_project_api_v1_projects_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Projects visible to the caller",
+        "operationId": "list_projects_api_v1_projects_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Archived"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectRead"
+                  },
+                  "title": "Response List Projects Api V1 Projects Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Project details",
+        "operationId": "get_project_api_v1_projects__project_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Rename / edit a project",
+        "operationId": "update_project_api_v1_projects__project_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/archive": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Archive a project (read-only afterwards, no new bugs)",
+        "operationId": "archive_project_api_v1_projects__project_id__archive_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/unarchive": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Make an archived project writable again (Administrator)",
+        "operationId": "unarchive_project_api_v1_projects__project_id__unarchive_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/members": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Project members",
+        "operationId": "list_members_api_v1_projects__project_id__members_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberRead"
+                  },
+                  "title": "Response List Members Api V1 Projects  Project Id  Members Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Add a member with a project role (Project Manager)",
+        "operationId": "add_member_api_v1_projects__project_id__members_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberAdd"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/members/{user_id}": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Change a member's project role (Project Manager)",
+        "operationId": "change_member_role_api_v1_projects__project_id__members__user_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Remove a member (Project Manager)",
+        "operationId": "remove_member_api_v1_projects__project_id__members__user_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/audit": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Project and membership audit history (Project Manager)",
+        "operationId": "project_audit_api_v1_projects__project_id__audit_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEntryRead"
+                  },
+                  "title": "Response Project Audit Api V1 Projects  Project Id  Audit Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/dashboard": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Counts by status/severity, bugs over time, average resolution time (FR-15)",
+        "operationId": "dashboard_api_v1_projects__project_id__dashboard_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 7,
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDashboard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs": {
+      "post": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Submit a bug report",
+        "operationId": "create_bug_api_v1_bugs_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BugCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BugRead"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for your role or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bug not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state change or archived project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Search and filter bugs",
+        "description": "All filters are optional and combine with AND. `q` is a full-text search over title and description (PostgreSQL `websearch_to_tsquery`: supports \"phrases\", -exclude, OR). Only bugs from the caller's projects are returned.",
+        "operationId": "list_bugs_api_v1_bugs_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id",
+              "nullable": true
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/BugStatus"
+              },
+              "title": "Status",
+              "nullable": true
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Severity"
+              },
+              "title": "Severity",
+              "nullable": true
+            }
+          },
+          {
+            "name": "assignee_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "title": "Assignee Id",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporter_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "title": "Reporter Id",
+              "nullable": true
+            }
+          },
+          {
+            "name": "created_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Created From",
+              "nullable": true
+            }
+          },
+          {
+            "name": "created_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Created To",
+              "nullable": true
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "title": "Q",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "created_desc",
+                "created_asc",
+                "updated_desc",
+                "severity_desc",
+                "relevance"
+              ],
+              "type": "string",
+              "default": "created_desc",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_BugListItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs/{bug_id}": {
+      "get": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Bug details",
+        "operationId": "get_bug_api_v1_bugs__bug_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BugRead"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for your role or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bug not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state change or archived project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Edit bug fields",
+        "operationId": "update_bug_api_v1_bugs__bug_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BugUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BugRead"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for your role or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bug not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state change or archived project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs/{bug_id}/transitions": {
+      "post": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Change bug status",
+        "description": "Invalid transitions return 409; a valid transition by the wrong role returns 403.",
+        "operationId": "transition_bug_api_v1_bugs__bug_id__transitions_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BugRead"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for your role or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bug not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state change or archived project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs/{bug_id}/assign": {
+      "post": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Assign or reassign a developer (Project Manager)",
+        "operationId": "assign_bug_api_v1_bugs__bug_id__assign_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__schemas__bug__AssignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BugRead"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for your role or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bug not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state change or archived project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs/{bug_id}/severity": {
+      "post": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Override the predicted severity (Developer / Project Manager)",
+        "operationId": "override_severity_api_v1_bugs__bug_id__severity_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeverityOverrideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BugRead"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for your role or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bug not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state change or archived project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs/{bug_id}/audit": {
+      "get": {
+        "tags": [
+          "bugs"
+        ],
+        "summary": "Full change history of a bug",
+        "operationId": "bug_audit_api_v1_bugs__bug_id__audit_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEntryRead"
+                  },
+                  "title": "Response Bug Audit Api V1 Bugs  Bug Id  Audit Get"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for your role or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bug not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state change or archived project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs/{bug_id}/comments": {
+      "get": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Comments, oldest first",
+        "operationId": "list_comments_api_v1_bugs__bug_id__comments_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentRead"
+                  },
+                  "title": "Response List Comments Api V1 Bugs  Bug Id  Comments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Add a comment",
+        "operationId": "add_comment_api_v1_bugs__bug_id__comments_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bugs/{bug_id}/attachments": {
+      "post": {
+        "tags": [
+          "attachments"
+        ],
+        "summary": "Upload an attachment (max 10 MB; images, PDF, text, CSV, JSON, ZIP, GZIP)",
+        "operationId": "upload_attachment_api_v1_bugs__bug_id__attachments_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_attachment_api_v1_bugs__bug_id__attachments_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentRead"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File larger than the limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "File type not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "attachments"
+        ],
+        "summary": "List a bug's attachments",
+        "operationId": "list_attachments_api_v1_bugs__bug_id__attachments_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bug_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Bug Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentRead"
+                  },
+                  "title": "Response List Attachments Api V1 Bugs  Bug Id  Attachments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attachments/{attachment_id}/download": {
+      "get": {
+        "tags": [
+          "attachments"
+        ],
+        "summary": "Download an attachment (project members only)",
+        "operationId": "download_attachment_api_v1_attachments__attachment_id__download_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attachments/{attachment_id}": {
+      "delete": {
+        "tags": [
+          "attachments"
+        ],
+        "summary": "Delete an attachment (uploader or Project Manager)",
+        "operationId": "delete_attachment_api_v1_attachments__attachment_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/triage": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Run the full triage pipeline on a draft report",
+        "description": "Duplicates -> severity -> developer recommendation over one shared context: a likely duplicate boosts the developers who fixed the original, and a Critical prediction filters out unavailable developers and those at their maximum workload.",
+        "operationId": "triage_api_v1_ai_triage_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriageResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member of the project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/duplicates": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Find possible duplicates while the user types",
+        "description": "Top-k earlier reports of the same project with a similarity score (FR-10).",
+        "operationId": "duplicates_api_v1_ai_duplicates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriageResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member of the project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/severity": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Predict the severity of a draft report",
+        "description": "Soft-voting ensemble; returns the label, its confidence and all class probabilities (FR-11).",
+        "operationId": "severity_api_v1_ai_severity_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeverityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/assign": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Recommend developers for a report",
+        "description": "Top-3 developers of the project with score and reason (FR-12) using the hybrid cold-start blend (FR-22). Optional `severity` and `duplicate_of_ids` provide the shared state that the full pipeline would otherwise compute.",
+        "operationId": "assign_api_v1_ai_assign_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__schemas__ai__AssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriageResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member of the project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/status": {
+      "get": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "State of the triage models",
+        "description": "Lets the extension explain why AI results are missing.",
+        "operationId": "ai_status_api_v1_ai_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "My notifications, newest first",
+        "operationId": "list_notifications_api_v1_notifications_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Unread Only"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_NotificationRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Number of unread notifications",
+        "operationId": "unread_api_v1_notifications_unread_count_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCount"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/{notification_id}/read": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark one as read",
+        "operationId": "mark_one_api_v1_notifications__notification_id__read_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkedRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark all as read",
+        "operationId": "mark_all_api_v1_notifications_read_all_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkedRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/subscription": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "My private ntfy topic for push alerts",
+        "operationId": "subscription_api_v1_notifications_subscription_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushSubscription"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/profiles": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List developer profiles",
+        "operationId": "list_profiles_api_v1_admin_profiles_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "title": "Active",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cold_start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "title": "Cold Start",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProfileRead"
+                  },
+                  "title": "Response List Profiles Api V1 Admin Profiles Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create a developer profile",
+        "operationId": "create_profile_api_v1_admin_profiles_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Developer profile",
+        "operationId": "get_profile_api_v1_admin_profiles__profile_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Edit a profile (set `active: false` to deactivate)",
+        "operationId": "update_profile_api_v1_admin_profiles__profile_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/profiles/{profile_id}/audit": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Profile change history",
+        "operationId": "profile_audit_api_v1_admin_profiles__profile_id__audit_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEntryRead"
+                  },
+                  "title": "Response Profile Audit Api V1 Admin Profiles  Profile Id  Audit Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/developers/stats": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Tracking figures for every developer",
+        "operationId": "all_stats_api_v1_admin_developers_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeveloperStats"
+                  },
+                  "type": "array",
+                  "title": "Response All Stats Api V1 Admin Developers Stats Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/developers/{user_id}/stats": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Resolved bugs, average resolution time, reassignments, workload (FR-21)",
+        "operationId": "developer_stats_api_v1_admin_developers__user_id__stats_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeveloperStats"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Runtime thresholds",
+        "operationId": "get_settings__api_v1_admin_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SettingRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Settings  Api V1 Admin Settings Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Change runtime thresholds (applies immediately, no redeploy)",
+        "operationId": "put_settings_api_v1_admin_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SettingRead"
+                  },
+                  "type": "array",
+                  "title": "Response Put Settings Api V1 Admin Settings Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminUserUpdate": {
+        "properties": {
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRole"
+              }
+            ],
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AdminUserUpdate",
+        "description": "Administrator changes a user's global role or deactivates the account.",
+        "example": {
+          "is_active": true,
+          "role": "Developer"
+        }
+      },
+      "AiStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "degraded"
+        ],
+        "title": "AiStatus",
+        "description": "Overall result of the AI triage for a report: `ok` or `degraded` (NFR-10)."
+      },
+      "AiStatusResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "The administrator switch `ai_enabled`."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "loading",
+              "ready",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "nullable": true
+          },
+          "models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Models"
+          },
+          "load_seconds": {
+            "type": "number",
+            "title": "Load Seconds",
+            "nullable": true
+          },
+          "indexed_reports": {
+            "type": "integer",
+            "title": "Indexed Reports"
+          },
+          "served_models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelVersion"
+            },
+            "type": "array",
+            "title": "Served Models",
+            "description": "Rows of `model_state`: which artifact is served."
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "state",
+          "error",
+          "models",
+          "load_seconds",
+          "indexed_reports"
+        ],
+        "title": "AiStatusResponse",
+        "description": "State of the in-process triage models and which artifacts are served."
+      },
+      "AttachmentRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "bug_id": {
+            "type": "integer",
+            "title": "Bug Id"
+          },
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "uploader": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "bug_id",
+          "original_filename",
+          "content_type",
+          "size_bytes",
+          "sha256",
+          "uploader",
+          "created_at"
+        ],
+        "title": "AttachmentRead",
+        "description": "A file attached to a bug (FR-14). Downloaded through its own endpoint."
+      },
+      "AuditEntryRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "nullable": true
+          },
+          "old_value": {
+            "type": "string",
+            "title": "Old Value",
+            "nullable": true
+          },
+          "new_value": {
+            "type": "string",
+            "title": "New Value",
+            "nullable": true
+          },
+          "actor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "bug_id": {
+            "type": "integer",
+            "title": "Bug Id",
+            "nullable": true
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id",
+            "nullable": true
+          },
+          "target_user_id": {
+            "type": "integer",
+            "title": "Target User Id",
+            "nullable": true
+          },
+          "profile_id": {
+            "type": "integer",
+            "title": "Profile Id",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "field",
+          "old_value",
+          "new_value",
+          "actor",
+          "bug_id",
+          "project_id",
+          "target_user_id",
+          "profile_id",
+          "created_at"
+        ],
+        "title": "AuditEntryRead",
+        "description": "One audit-trail entry: who changed what, when (UTC), old and new value (FR-08)."
+      },
+      "Availability": {
+        "type": "string",
+        "enum": [
+          "Available",
+          "Limited",
+          "Unavailable"
+        ],
+        "title": "Availability",
+        "description": "Whether a developer can take new work; Critical bugs skip `Unavailable` developers."
+      },
+      "Body_login_api_v1_auth_login_post": {
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "pattern": "^password$",
+            "title": "Grant Type",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "nullable": true
+          },
+          "client_secret": {
+            "type": "string",
+            "format": "password",
+            "title": "Client Secret",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_api_v1_auth_login_post",
+        "description": "OAuth2 password form: `username` is the e-mail."
+      },
+      "Body_upload_attachment_api_v1_bugs__bug_id__attachments_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File",
+            "description": "The file to attach",
+            "format": "binary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_attachment_api_v1_bugs__bug_id__attachments_post",
+        "description": "Multipart file upload (<= 10 MB; images, PDF, text and logs; the real MIME type is checked)."
+      },
+      "BugCreate": {
+        "properties": {
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 5,
+            "title": "Title",
+            "example": "Crash when saving"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 20,
+            "title": "Description",
+            "example": "Saving a file larger than 2 MB closes the editor without an error message."
+          },
+          "steps_to_reproduce": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Steps To Reproduce",
+            "example": "1. Open a file"
+          },
+          "environment": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Environment",
+            "example": "VS Code 1.105, macOS 15"
+          },
+          "components": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Components"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "title",
+          "description",
+          "steps_to_reproduce",
+          "environment"
+        ],
+        "title": "BugCreate",
+        "description": "FR-05 bug submission form."
+      },
+      "BugListItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BugStatus"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "ai_status": {
+            "$ref": "#/components/schemas/AiStatus"
+          },
+          "assignee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "reporter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "components": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Components"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "title",
+          "status",
+          "severity",
+          "ai_status",
+          "assignee",
+          "reporter",
+          "components",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "BugListItem",
+        "description": "Bug summary used in lists and search results."
+      },
+      "BugRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BugStatus"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "ai_status": {
+            "$ref": "#/components/schemas/AiStatus"
+          },
+          "assignee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "reporter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "components": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Components"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "steps_to_reproduce": {
+            "type": "string",
+            "title": "Steps To Reproduce"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "close_reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CloseReason"
+              }
+            ],
+            "nullable": true
+          },
+          "duplicate_of_id": {
+            "type": "integer",
+            "title": "Duplicate Of Id",
+            "nullable": true
+          },
+          "predicted_severity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Severity"
+              }
+            ],
+            "nullable": true
+          },
+          "severity_confidence": {
+            "type": "number",
+            "title": "Severity Confidence",
+            "nullable": true
+          },
+          "severity_overridden": {
+            "type": "boolean",
+            "title": "Severity Overridden"
+          },
+          "duplicate_candidates": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Duplicate Candidates"
+          },
+          "recommended_developers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Recommended Developers"
+          },
+          "ai_details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ai Details",
+            "description": "Per-step triage status/timing and `notice`, a message to show when AI results are missing (NFR-10)."
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Resolved At",
+            "nullable": true
+          },
+          "closed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Closed At",
+            "nullable": true
+          },
+          "allowed_transitions": {
+            "items": {
+              "$ref": "#/components/schemas/BugStatus"
+            },
+            "type": "array",
+            "title": "Allowed Transitions",
+            "description": "Statuses the caller may move this bug to now."
+          },
+          "can_override_severity": {
+            "type": "boolean",
+            "title": "Can Override Severity",
+            "default": false
+          },
+          "can_assign": {
+            "type": "boolean",
+            "title": "Can Assign",
+            "default": false
+          },
+          "can_edit": {
+            "type": "boolean",
+            "title": "Can Edit",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "title",
+          "status",
+          "severity",
+          "ai_status",
+          "assignee",
+          "reporter",
+          "components",
+          "created_at",
+          "updated_at",
+          "description",
+          "steps_to_reproduce",
+          "environment",
+          "close_reason",
+          "duplicate_of_id",
+          "predicted_severity",
+          "severity_confidence",
+          "severity_overridden",
+          "duplicate_candidates",
+          "recommended_developers",
+          "resolved_at",
+          "closed_at"
+        ],
+        "title": "BugRead",
+        "description": "Full bug with AI results and what the caller may do with it."
+      },
+      "BugStatus": {
+        "type": "string",
+        "enum": [
+          "Open",
+          "InProgress",
+          "Resolved",
+          "Verified",
+          "Closed"
+        ],
+        "title": "BugStatus",
+        "description": "Lifecycle state (FR-06): Open -> InProgress -> Resolved -> Verified -> Closed."
+      },
+      "BugUpdate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 5,
+            "example": "Crash when saving",
+            "title": "Title",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 20,
+            "example": "Saving a file larger than 2 MB closes the editor without an error message.",
+            "title": "Description",
+            "nullable": true
+          },
+          "steps_to_reproduce": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "example": "1. Open a file",
+            "title": "Steps To Reproduce",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "example": "VS Code 1.105, macOS 15",
+            "title": "Environment",
+            "nullable": true
+          },
+          "components": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Components",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "BugUpdate",
+        "description": "Editable bug fields; only the fields sent are changed."
+      },
+      "ChangePasswordRequest": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 72,
+            "title": "New Password",
+            "example": "Str0ng!Pass"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest",
+        "description": "Change the own password; all other sessions are signed out."
+      },
+      "CloseReason": {
+        "type": "string",
+        "enum": [
+          "fixed",
+          "invalid",
+          "duplicate"
+        ],
+        "title": "CloseReason",
+        "description": "Why a bug was closed: fixed, invalid or duplicate."
+      },
+      "CommentCreate": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Body"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "CommentCreate",
+        "description": "A new comment (FR-09).",
+        "example": {
+          "body": "Reproduced on v3.8.1; the stack trace is attached."
+        }
+      },
+      "CommentRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "bug_id": {
+            "type": "integer",
+            "title": "Bug Id"
+          },
+          "author": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "bug_id",
+          "author",
+          "body",
+          "created_at"
+        ],
+        "title": "CommentRead",
+        "description": "A comment with its author and time."
+      },
+      "ComponentCount": {
+        "properties": {
+          "component": {
+            "type": "string",
+            "title": "Component"
+          },
+          "open_bugs": {
+            "type": "integer",
+            "title": "Open Bugs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "component",
+          "open_bugs"
+        ],
+        "title": "ComponentCount",
+        "description": "Open bugs per component (dashboard)."
+      },
+      "DayCount": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "resolved": {
+            "type": "integer",
+            "title": "Resolved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "created",
+          "resolved"
+        ],
+        "title": "DayCount",
+        "description": "Bugs created and resolved on one day (dashboard)."
+      },
+      "DeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "sent",
+          "failed",
+          "skipped"
+        ],
+        "title": "DeliveryStatus",
+        "description": "Delivery state of an e-mail or push notification."
+      },
+      "DeveloperStats": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "profile_id": {
+            "type": "integer",
+            "title": "Profile Id",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "nullable": true
+          },
+          "is_cold_start": {
+            "type": "boolean",
+            "title": "Is Cold Start",
+            "nullable": true
+          },
+          "alpha": {
+            "type": "number",
+            "title": "Alpha",
+            "description": "History weight min(1, resolved/N) used by the cold-start blend (FR-22).",
+            "nullable": true
+          },
+          "bugs_resolved": {
+            "type": "integer",
+            "title": "Bugs Resolved"
+          },
+          "average_resolution_hours": {
+            "type": "number",
+            "title": "Average Resolution Hours",
+            "nullable": true
+          },
+          "reassignment_count": {
+            "type": "integer",
+            "title": "Reassignment Count",
+            "description": "Times a bug was reassigned away from them."
+          },
+          "current_workload": {
+            "type": "integer",
+            "title": "Current Workload",
+            "description": "Assigned bugs that are Open or InProgress."
+          },
+          "max_workload": {
+            "type": "integer",
+            "title": "Max Workload",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "profile_id",
+          "active",
+          "is_cold_start",
+          "alpha",
+          "bugs_resolved",
+          "average_resolution_hours",
+          "reassignment_count",
+          "current_workload",
+          "max_workload"
+        ],
+        "title": "DeveloperStats",
+        "description": "FR-21 per-developer tracking."
+      },
+      "DeveloperSuggestion": {
+        "properties": {
+          "developer_id": {
+            "type": "integer",
+            "title": "Developer Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "history match",
+              "skill match",
+              "new developer (cold start)"
+            ],
+            "title": "Reason"
+          },
+          "alpha": {
+            "type": "number",
+            "title": "Alpha",
+            "description": "Weight of history vs profile: min(1, resolved / N)."
+          },
+          "history_score": {
+            "type": "number",
+            "title": "History Score"
+          },
+          "profile_score": {
+            "type": "number",
+            "title": "Profile Score"
+          },
+          "explored": {
+            "type": "boolean",
+            "title": "Explored",
+            "description": "Placed in slot 3 by cold-start exploration."
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "developer_id",
+          "name",
+          "score",
+          "reason",
+          "alpha",
+          "history_score",
+          "profile_score",
+          "explored"
+        ],
+        "title": "DeveloperSuggestion",
+        "description": "A recommended developer with score and reason (FR-12, FR-22)."
+      },
+      "DuplicateCheckRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "default": "",
+            "example": "Crash when saving"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "example": "Saving a file larger than 2 MB closes the editor."
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "exclude_bug_id": {
+            "type": "integer",
+            "title": "Exclude Bug Id",
+            "description": "When editing an existing bug, leave it out of the results.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id"
+        ],
+        "title": "DuplicateCheckRequest",
+        "description": "Draft text to check for duplicates while the user types (FR-10)."
+      },
+      "DuplicateMatch": {
+        "properties": {
+          "bug_id": {
+            "type": "integer",
+            "title": "Bug Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BugStatus"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Hybrid similarity in [0, 1] (BM25 + MiniLM)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "bug_id",
+          "title",
+          "status",
+          "score"
+        ],
+        "title": "DuplicateMatch",
+        "description": "An earlier report of the same project that may be a duplicate."
+      },
+      "ErrorResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Machine-readable error code.",
+            "example": "not_found"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable message.",
+            "example": "Bug not found"
+          },
+          "details": {
+            "title": "Details",
+            "description": "Optional structured details.",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorResponse",
+        "description": "Every error has this shape."
+      },
+      "ExperienceLevel": {
+        "type": "string",
+        "enum": [
+          "Junior",
+          "Mid",
+          "Senior"
+        ],
+        "title": "ExperienceLevel",
+        "description": "Developer experience level in the admin profile (FR-20)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError",
+        "description": "FastAPI's validation error model. This API returns validation errors as ErrorResponse with code `validation_error` and the field errors in `details`."
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Always `ok` when the process is serving requests.",
+            "enum": [
+              "ok"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Backend version.",
+            "example": "0.1.0"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "description": "Deployment environment.",
+            "example": "development"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "environment"
+        ],
+        "title": "HealthResponse",
+        "description": "Liveness answer of GET /health (NFR-09)."
+      },
+      "MarkedRead": {
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "title": "Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "updated"
+        ],
+        "title": "MarkedRead",
+        "description": "Number of notifications marked as read."
+      },
+      "MemberAdd": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "nullable": true
+          },
+          "role": {
+            "$ref": "#/components/schemas/ProjectRole"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "MemberAdd",
+        "description": "Identify the user by id or by e-mail (exactly one).",
+        "example": {
+          "role": "Developer",
+          "user_id": 5
+        }
+      },
+      "MemberRead": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ProjectRole"
+          },
+          "joined_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Joined At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "role",
+          "joined_at"
+        ],
+        "title": "MemberRead",
+        "description": "A project member and their project role (FR-19)."
+      },
+      "MemberUpdate": {
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/ProjectRole"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "MemberUpdate",
+        "description": "Change a member's project role.",
+        "example": {
+          "role": "ProjectManager"
+        }
+      },
+      "ModelVersion": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "artifact": {
+            "type": "string",
+            "title": "Artifact",
+            "nullable": true
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256",
+            "description": "SHA-256 of the weight file being served.",
+            "nullable": true
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "nullable": true
+          },
+          "loaded_by": {
+            "type": "string",
+            "title": "Loaded By"
+          },
+          "loaded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Loaded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "status",
+          "artifact",
+          "sha256",
+          "size_bytes",
+          "detail",
+          "loaded_by",
+          "loaded_at"
+        ],
+        "title": "ModelVersion",
+        "description": "One row of `model_state`: a triage model and the artifact being served."
+      },
+      "NotificationKind": {
+        "type": "string",
+        "enum": [
+          "assigned",
+          "status_changed",
+          "critical_bug"
+        ],
+        "title": "NotificationKind",
+        "description": "Why a notification was sent: assignment, status change or critical bug."
+      },
+      "NotificationRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          },
+          "bug_id": {
+            "type": "integer",
+            "title": "Bug Id",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "is_read": {
+            "type": "boolean",
+            "title": "Is Read"
+          },
+          "email_status": {
+            "$ref": "#/components/schemas/DeliveryStatus"
+          },
+          "push_status": {
+            "$ref": "#/components/schemas/DeliveryStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "bug_id",
+          "title",
+          "message",
+          "is_read",
+          "email_status",
+          "push_status",
+          "created_at"
+        ],
+        "title": "NotificationRead",
+        "description": "An in-app notification (FR-17) with its e-mail and push delivery state."
+      },
+      "Page_BugListItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BugListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total number of matching items."
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "1-based page number."
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[BugListItem]",
+        "description": "One page of bugs; `total` counts all matches."
+      },
+      "Page_NotificationRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total number of matching items."
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "1-based page number."
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[NotificationRead]",
+        "description": "One page of notifications; `total` counts all matches."
+      },
+      "Page_UserSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total number of matching items."
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "1-based page number."
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[UserSummary]",
+        "description": "One page of users; `total` counts all matches."
+      },
+      "ProfileCreate": {
+        "properties": {
+          "skills": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Skills",
+            "nullable": true,
+            "example": [
+              "python",
+              "sql"
+            ]
+          },
+          "components": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Components",
+            "nullable": true,
+            "example": [
+              "payments"
+            ]
+          },
+          "languages": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 15,
+            "title": "Languages",
+            "nullable": true,
+            "example": [
+              "python"
+            ]
+          },
+          "experience_level": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExperienceLevel"
+              }
+            ],
+            "nullable": true
+          },
+          "availability": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Availability"
+              }
+            ],
+            "nullable": true
+          },
+          "max_workload": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Max Workload",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "nullable": true
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "ProfileCreate",
+        "description": "FR-20: an Administrator creates a profile for a Developer account."
+      },
+      "ProfileRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "components": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Components"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Languages"
+          },
+          "experience_level": {
+            "$ref": "#/components/schemas/ExperienceLevel"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
+          },
+          "max_workload": {
+            "type": "integer",
+            "title": "Max Workload"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "resolved_count": {
+            "type": "integer",
+            "title": "Resolved Count"
+          },
+          "is_cold_start": {
+            "type": "boolean",
+            "title": "Is Cold Start"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user",
+          "skills",
+          "components",
+          "languages",
+          "experience_level",
+          "availability",
+          "max_workload",
+          "active",
+          "resolved_count",
+          "is_cold_start",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProfileRead",
+        "description": "Developer profile used by the recommender (FR-20), with cold-start state (FR-22)."
+      },
+      "ProfileUpdate": {
+        "properties": {
+          "skills": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Skills",
+            "nullable": true,
+            "example": [
+              "python",
+              "sql"
+            ]
+          },
+          "components": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Components",
+            "nullable": true,
+            "example": [
+              "payments"
+            ]
+          },
+          "languages": {
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 15,
+            "title": "Languages",
+            "nullable": true,
+            "example": [
+              "python"
+            ]
+          },
+          "experience_level": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExperienceLevel"
+              }
+            ],
+            "nullable": true
+          },
+          "availability": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Availability"
+              }
+            ],
+            "nullable": true
+          },
+          "max_workload": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Max Workload",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProfileUpdate",
+        "description": "Editable profile fields; only the fields sent are changed."
+      },
+      "ProjectCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name",
+            "example": "Payments API"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ProjectCreate",
+        "description": "A new project (FR-18)."
+      },
+      "ProjectDashboard": {
+        "properties": {
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "total_bugs": {
+            "type": "integer",
+            "title": "Total Bugs"
+          },
+          "open_bugs": {
+            "type": "integer",
+            "title": "Open Bugs",
+            "description": "Bugs in Open or InProgress."
+          },
+          "open_critical": {
+            "type": "integer",
+            "title": "Open Critical"
+          },
+          "by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Status"
+          },
+          "by_severity": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Severity"
+          },
+          "over_time": {
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "type": "array",
+            "title": "Over Time"
+          },
+          "average_resolution_hours": {
+            "type": "number",
+            "title": "Average Resolution Hours",
+            "description": "Mean hours from submission to (latest) resolution, over resolved bugs.",
+            "nullable": true
+          },
+          "top_components": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentCount"
+            },
+            "type": "array",
+            "title": "Top Components"
+          },
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "total_bugs",
+          "open_bugs",
+          "open_critical",
+          "by_status",
+          "by_severity",
+          "over_time",
+          "average_resolution_hours",
+          "top_components",
+          "days"
+        ],
+        "title": "ProjectDashboard",
+        "description": "FR-15 project dashboard."
+      },
+      "ProjectRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "is_archived": {
+            "type": "boolean",
+            "title": "Is Archived"
+          },
+          "archived_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Archived At",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "my_role": {
+            "description": "Caller's role in this project (null for non-member admins).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectRole"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "is_archived",
+          "archived_at",
+          "created_at"
+        ],
+        "title": "ProjectRead",
+        "description": "A project and the caller's role in it."
+      },
+      "ProjectRole": {
+        "type": "string",
+        "enum": [
+          "Reporter",
+          "Developer",
+          "ProjectManager"
+        ],
+        "title": "ProjectRole",
+        "description": "Role a user holds inside one project (FR-19)."
+      },
+      "ProjectUpdate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "example": "Payments API",
+            "title": "Name",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Description",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProjectUpdate",
+        "description": "Rename or describe a project."
+      },
+      "PushSubscription": {
+        "properties": {
+          "server_url": {
+            "type": "string",
+            "title": "Server Url",
+            "description": "Self-hosted ntfy server."
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic",
+            "description": "Private, unguessable topic for this user (read-only)."
+          },
+          "subscribe_url": {
+            "type": "string",
+            "title": "Subscribe Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "server_url",
+          "topic",
+          "subscribe_url"
+        ],
+        "title": "PushSubscription",
+        "description": "FR-17: where to subscribe (ntfy app / desktop / VS Code) to receive push alerts."
+      },
+      "RegisterRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "example": "dana@example.com"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Full Name",
+            "example": "Dana Developer"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 72,
+            "title": "Password",
+            "example": "Str0ng!Pass"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email",
+          "full_name",
+          "password"
+        ],
+        "title": "RegisterRequest",
+        "description": "Self-registration always creates a Reporter; an Administrator grants other roles."
+      },
+      "SettingRead": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "default": {
+            "type": "number",
+            "title": "Default"
+          },
+          "minimum": {
+            "type": "number",
+            "title": "Minimum"
+          },
+          "maximum": {
+            "type": "number",
+            "title": "Maximum"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "nullable": true
+          },
+          "updated_by": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "default",
+          "minimum",
+          "maximum",
+          "type",
+          "unit",
+          "description",
+          "updated_at",
+          "updated_by"
+        ],
+        "title": "SettingRead",
+        "description": "A runtime threshold with its allowed range and last change (NFR-14)."
+      },
+      "SettingsUpdate": {
+        "properties": {
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Values",
+            "example": {
+              "cold_start_threshold": 10,
+              "exploration_rate": 0.1
+            }
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "values"
+        ],
+        "title": "SettingsUpdate",
+        "description": "New values for runtime settings, by key; validated against their ranges."
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "Low",
+          "Medium",
+          "High",
+          "Critical",
+          "Unclassified"
+        ],
+        "title": "Severity",
+        "description": "Bug severity. `Unclassified` means no prediction was available (NFR-10)."
+      },
+      "SeverityOverrideRequest": {
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "Low",
+              "Medium",
+              "High",
+              "Critical"
+            ],
+            "title": "Severity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "severity"
+        ],
+        "title": "SeverityOverrideRequest",
+        "description": "Severity chosen by a Developer or Project Manager (FR-11, audited).",
+        "example": {
+          "severity": "Critical"
+        }
+      },
+      "SeverityRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "default": "",
+            "example": "Crash when saving"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "example": "Saving a file larger than 2 MB closes the editor."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SeverityRequest",
+        "description": "Draft text to classify (FR-11)."
+      },
+      "SeverityResult": {
+        "properties": {
+          "severity": {
+            "description": "None when the step was degraded.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Severity"
+              }
+            ],
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "nullable": true
+          },
+          "probabilities": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Probabilities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "severity",
+          "confidence"
+        ],
+        "title": "SeverityResult",
+        "description": "Predicted severity, its confidence and the probability of every class."
+      },
+      "StepInfo": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "elapsed_ms": {
+            "type": "number",
+            "title": "Elapsed Ms"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "elapsed_ms"
+        ],
+        "title": "StepInfo",
+        "description": "Status and time of one triage step."
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Seconds until the token expires (8 hours, FR-02)."
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserMe"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "TokenResponse",
+        "description": "JWT access token (8-hour expiry, FR-02) and the logged-in user."
+      },
+      "TransitionRequest": {
+        "properties": {
+          "to_status": {
+            "$ref": "#/components/schemas/BugStatus"
+          },
+          "close_reason": {
+            "type": "string",
+            "enum": [
+              "invalid",
+              "duplicate"
+            ],
+            "title": "Close Reason",
+            "nullable": true
+          },
+          "duplicate_of_id": {
+            "type": "integer",
+            "title": "Duplicate Of Id",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "to_status"
+        ],
+        "title": "TransitionRequest",
+        "description": "FR-06: request a status change. Closing an Open bug needs a reason.",
+        "example": {
+          "close_reason": "duplicate",
+          "duplicate_of_id": 12,
+          "to_status": "Closed"
+        }
+      },
+      "TriageRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "default": "",
+            "example": "Crash when saving"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "example": "Saving a file larger than 2 MB closes the editor."
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "components": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Components"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id"
+        ],
+        "title": "TriageRequest",
+        "description": "Draft report for the full triage pipeline."
+      },
+      "TriageResponse": {
+        "properties": {
+          "ai_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiStatus"
+              }
+            ],
+            "description": "`degraded` if any requested step failed."
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice",
+            "description": "Human-readable explanation when degraded.",
+            "nullable": true
+          },
+          "duplicates": {
+            "items": {
+              "$ref": "#/components/schemas/DuplicateMatch"
+            },
+            "type": "array",
+            "title": "Duplicates"
+          },
+          "is_likely_duplicate": {
+            "type": "boolean",
+            "title": "Is Likely Duplicate"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/SeverityResult"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/DeveloperSuggestion"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "steps": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StepInfo"
+            },
+            "type": "object",
+            "title": "Steps",
+            "description": "Keys: duplicates, severity, assignment."
+          },
+          "total_ms": {
+            "type": "number",
+            "title": "Total Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_status",
+          "notice",
+          "duplicates",
+          "is_likely_duplicate",
+          "severity",
+          "recommendations",
+          "steps",
+          "total_ms"
+        ],
+        "title": "TriageResponse",
+        "description": "Same shape for every /ai endpoint; parts that were not requested are empty."
+      },
+      "UnreadCount": {
+        "properties": {
+          "unread": {
+            "type": "integer",
+            "title": "Unread"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unread"
+        ],
+        "title": "UnreadCount",
+        "description": "Number of unread notifications."
+      },
+      "UpdateMeRequest": {
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "example": "Dana Developer",
+            "title": "Full Name",
+            "nullable": true
+          },
+          "email_notifications": {
+            "type": "boolean",
+            "title": "Email Notifications",
+            "nullable": true
+          },
+          "push_notifications": {
+            "type": "boolean",
+            "title": "Push Notifications",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UpdateMeRequest",
+        "description": "FR-04: users edit their own name and notification preferences."
+      },
+      "UserMe": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "email_notifications": {
+            "type": "boolean",
+            "title": "Email Notifications"
+          },
+          "push_notifications": {
+            "type": "boolean",
+            "title": "Push Notifications"
+          },
+          "ntfy_topic": {
+            "type": "string",
+            "title": "Ntfy Topic",
+            "description": "Private ntfy topic for push alerts (FR-17)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "role",
+          "is_active",
+          "created_at",
+          "email_notifications",
+          "push_notifications",
+          "ntfy_topic"
+        ],
+        "title": "UserMe",
+        "description": "The logged-in user, including notification preferences and push topic."
+      },
+      "UserRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "role",
+          "is_active",
+          "created_at"
+        ],
+        "title": "UserRead",
+        "description": "A user account as seen by an Administrator."
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "Reporter",
+          "Developer",
+          "ProjectManager",
+          "Administrator"
+        ],
+        "title": "UserRole",
+        "description": "Global role (FR-03). Administrator is a system-wide super user."
+      },
+      "UserSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "full_name",
+          "email",
+          "role"
+        ],
+        "title": "UserSummary",
+        "description": "Minimal user reference used inside other objects."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "description": "One field error: location, message and type."
+      },
+      "app__schemas__ai__AssignRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "default": "",
+            "example": "Crash when saving"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "example": "Saving a file larger than 2 MB closes the editor."
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "components": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Components"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "Low",
+              "Medium",
+              "High",
+              "Critical"
+            ],
+            "title": "Severity",
+            "description": "Known severity; Critical filters out busy developers.",
+            "nullable": true
+          },
+          "duplicate_of_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Duplicate Of Ids",
+            "description": "Bugs this report duplicates; their fixers get a boost."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id"
+        ],
+        "title": "AssignRequest",
+        "description": "Run only the recommender. The shared state can be passed in explicitly."
+      },
+      "app__schemas__bug__AssignRequest": {
+        "properties": {
+          "assignee_id": {
+            "type": "integer",
+            "title": "Assignee Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "assignee_id"
+        ],
+        "title": "AssignRequest",
+        "description": "Assign the bug to a project developer (Project Manager).",
+        "example": {
+          "assignee_id": 4
+        }
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/auth/login"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness check (NFR-09)."
+    },
+    {
+      "name": "auth",
+      "description": "Registration and login (FR-01, FR-02)."
+    },
+    {
+      "name": "users",
+      "description": "Own profile and user administration (FR-03, FR-04)."
+    },
+    {
+      "name": "projects",
+      "description": "Projects and team membership (FR-18, FR-19)."
+    },
+    {
+      "name": "bugs",
+      "description": "Bug submission, lifecycle, search and audit trail."
+    },
+    {
+      "name": "comments",
+      "description": "Flat, chronological comments (FR-09)."
+    },
+    {
+      "name": "attachments",
+      "description": "Bug attachments (FR-14)."
+    },
+    {
+      "name": "ai",
+      "description": "Triage pipeline: duplicates, severity, developer recommendation (FR-10..FR-12, FR-22). Degrades instead of failing (NFR-10)."
+    },
+    {
+      "name": "notifications",
+      "description": "In-app alerts and push subscription (FR-16, FR-17)."
+    },
+    {
+      "name": "admin",
+      "description": "Developer profiles, developer tracking and runtime settings (FR-20, FR-21, NFR-14). Administrator only."
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development (docker compose)"
+    }
+  ]
+}

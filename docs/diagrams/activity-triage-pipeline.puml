@@ -1,0 +1,55 @@
+@startuml activity-triage-pipeline
+title Triage pipeline with graceful degradation (TriageEngine.run + TriagePipeline.run)
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+
+start
+:Report text, project, components;
+if (Admin setting ai_enabled = 1?) then (no)
+  :All steps degraded\nnotice "switched off";
+  :Save bug as **Unclassified**;
+  stop
+endif
+if (Models loaded? (state = ready)) then (no)
+  :All steps degraded\nnotice "loading" / "could not be loaded";
+  :Save bug as **Unclassified**;
+  stop
+endif
+:Read thresholds (system_setting);
+:Sync project duplicate index\n(new reports, cached embeddings);
+:Load candidate developers\n(profiles, workload, resolutions);
+:Return DB connection to the pool;
+
+partition "Step 1: duplicates (duplicate_timeout_ms)" {
+  if (embedding model loaded\nand finished in time?) then (yes)
+    :BM25 top-50 -> MiniLM re-rank;
+    :keep score >= duplicate_min_score;
+    :likely duplicate = score >= duplicate_likely_threshold;
+  else (no)
+    :duplicates = degraded;
+  endif
+}
+partition "Step 2: severity (severity_timeout_ms)" {
+  if (model loaded and finished in time?) then (yes)
+    :severity + confidence;
+  else (no)
+    :severity = degraded;
+  endif
+}
+partition "Step 3: assignment (assignment_timeout_ms)" {
+  if (finished in time?) then (yes)
+    :history (CNN-LSTM or resolved-report similarity)\nblended with profile; Critical filter;\nduplicate boost; exploration;
+  else (no)
+    :assignment = degraded;
+  endif
+}
+:Log status and ms of each step;
+if (severity predicted?) then (yes)
+  :Save bug with predicted severity;
+else (no)
+  :Save bug as **Unclassified**\nwith notice (NFR-10);
+endif
+:Store embedding with the bug;
+:Add the report to the index;
+stop
+@enduml

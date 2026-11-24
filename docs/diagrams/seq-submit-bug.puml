@@ -1,0 +1,45 @@
+@startuml seq-submit-bug
+title Submit a bug report (FR-05, FR-10..FR-12, NFR-10)
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+autonumber
+
+actor Reporter
+participant "ReportBugPanel\n(webview)" as Panel
+participant "ApiClient" as Client
+participant "POST /api/v1/bugs\n(api/bugs.py)" as Api
+participant "TriageEngine" as Engine
+participant "TriagePipeline" as Pipeline
+participant "bug_service" as Bugs
+participant "NotificationDispatcher" as Dispatch
+database PostgreSQL as DB
+
+Reporter -> Panel : fill form, Submit
+Panel -> Client : createBug(data) (30 s timeout)
+Client -> Api : JSON + Bearer JWT
+Api -> Api : project_access(write=True)\n(403/409 if not allowed / archived)
+Api -> Engine : run(project, title, description, components)
+alt ai_enabled = 0, models loading or failed
+  Engine --> Api : AiOutcome(degraded, notice)
+else AI available
+  Engine -> DB : settings, sync duplicate index,\nproject developers + workload + resolutions
+  Engine -> DB : commit (connection back to pool)
+  Engine -> Pipeline : run(TriageContext)
+  Pipeline -> Pipeline : duplicates step (timeout)
+  Pipeline -> Pipeline : severity step (timeout)
+  Pipeline -> Pipeline : assignment step (timeout)\nuses severity + likely duplicate
+  Pipeline --> Engine : TriageResult (status + ms per step)
+  Engine --> Api : AiOutcome(ok | degraded)
+end
+Api -> Bugs : create_bug(ai)
+Bugs -> DB : INSERT bug (severity or Unclassified),\nbug_embedding, audit_log
+opt severity = Critical
+  Bugs -> DB : notification rows for managers
+end
+Bugs -> DB : COMMIT
+Api -> Dispatch : flush() -> background delivery (ntfy, SMTP)
+Api -> Engine : index_bug (incremental, FR-10)
+Api --> Client : 201 BugRead (+ ai_details.notice)
+Client --> Panel : Bug
+Panel --> Reporter : severity, top-3 developers with reasons,\nsimilar reports; or "AI unavailable –\nseverity set to Unclassified"
+@enduml

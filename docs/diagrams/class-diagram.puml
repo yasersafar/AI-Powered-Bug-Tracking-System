@@ -1,0 +1,118 @@
+@startuml class-diagram
+title Main classes of the triage path (names as in the code)
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+hide empty members
+
+package "backend/app/services/triage_service.py" {
+  class TriageEngine {
+    state : str
+    start(session_factory)
+    attach(models, session_factory)
+    run(db, project_id, title, description, ...) : AiOutcome
+    sync_project(db, project_id)
+    index_bug(db, bug, vector)
+    forget_text(db, bug)
+  }
+  class AiOutcome {
+    ai_status : AiStatus
+    severity : Severity
+    duplicates : list
+    recommendations : list
+    notice : str
+    details() : dict
+  }
+}
+
+package "ml/service" {
+  class TriagePipeline {
+    run(ctx, steps) : TriageResult
+    find_duplicates(ctx) : DuplicateOutput
+    classify(ctx) : SeverityPrediction
+    assign(ctx) : AssignmentOutput
+    history_scores(ctx, vector)
+  }
+  class TriageContext {
+    title, description, project_id
+    components, settings, developers
+    query_vector
+    duplicate_candidates
+    is_likely_duplicate
+    severity, confidence
+    recommendations
+    steps : dict[str, StepReport]
+  }
+  class TriageSettings
+  class DeveloperInfo
+  class StepReport
+  class TriageResult
+  class BugIndex {
+    add_many(project_id, ids, texts, vectors)
+    search(project_id, text, vector, top_k, min_score)
+    vectors(bug_ids)
+  }
+  class TriageModels {
+    encoder : TextEncoder
+    severity : SeverityModel
+    history : HistoryModel
+    files : dict
+  }
+}
+
+package "ml/duplicate" {
+  class DuplicateDetector {
+    semantic_weight = 0.7 (service)
+    search(text, top_k, ...)
+  }
+  class BM25Index {
+    add(tokens)
+    top_k(query, k)
+  }
+  class Embedder {
+    encode(texts)
+  }
+  class DuplicateCandidate
+}
+
+package "ml/severity" {
+  class SeverityClassifier {
+    predict(texts) : list[SeverityPrediction]
+    single_threaded()
+  }
+  class SeverityPrediction
+}
+
+package "ml/assignment" {
+  class DeveloperRanker {
+    probabilities(texts)
+  }
+  class CNNLSTM
+  class Vocabulary
+  class Candidate
+  class Recommendation {
+    score, alpha, reason, explored
+  }
+}
+
+TriageEngine --> TriagePipeline
+TriageEngine --> BugIndex
+TriageEngine ..> AiOutcome : creates
+TriagePipeline --> TriageModels
+TriagePipeline --> BugIndex
+TriagePipeline ..> TriageContext : reads/updates
+TriagePipeline ..> TriageResult : returns
+TriageContext *-- TriageSettings
+TriageContext o-- DeveloperInfo
+TriageContext *-- StepReport
+BugIndex o-- DuplicateDetector : one per project
+DuplicateDetector *-- BM25Index
+DuplicateDetector ..> DuplicateCandidate
+TriageModels o-- Embedder
+TriageModels o-- SeverityClassifier
+TriageModels o-- DeveloperRanker
+SeverityClassifier ..> SeverityPrediction
+DeveloperRanker *-- CNNLSTM
+DeveloperRanker *-- Vocabulary
+TriagePipeline ..> Candidate : builds
+TriagePipeline ..> Recommendation : cold_start.recommend()
+@enduml

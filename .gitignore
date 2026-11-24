@@ -221,3 +221,29 @@ __marimo__/
 node_modules/
 out/
 *.vsix
+dist/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+
+# Project: secrets (only .env.example is committed)
+.env.*
+!.env.example
+
+# Project: ML data and trained models (rebuild with `make train`)
+ml/data/raw/
+ml/data/processed/
+ml/artifacts/*
+!ml/artifacts/.gitkeep
+!ml/artifacts/README.md
+ml/.hf-cache/
+
+# Project: uploaded attachments in local (non-Docker) runs
+backend/storage/
+
+# VS Code test downloads (extension tests)
+.vscode-test/
+extension/out-test/
+extension/out-preview/

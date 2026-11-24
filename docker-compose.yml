@@ -1,0 +1,162 @@
+# Local development and demo environment.
+#
+#   make up      # build + start everything, wait until healthy
+#   make down    # stop (data is kept in named volumes)
+#   make nuke    # stop and delete all data volumes
+#
+# Services
+#   db       PostgreSQL 16                 localhost:${POSTGRES_PORT:-5432}
+#   ntfy     self-hosted ntfy (push)       http://localhost:${NTFY_PORT:-8080}
+#   mailpit  SMTP sink + web inbox         http://localhost:${MAILPIT_UI_PORT:-8025}
+#   backend  FastAPI                       http://localhost:${BACKEND_PORT:-8000}/docs
+
+name: bugtracker
+
+services:
+  db:
+    image: postgres:16.16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bugtracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-bugtracker}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Self-hosted ntfy. We deliberately do NOT set NTFY_UPSTREAM_BASE_URL:
+  # that option forwards poll requests to the public ntfy.sh server (DC-03).
+  ntfy:
+    image: binwiederhier/ntfy:v2.38.1
+    command: serve
+    restart: unless-stopped
+    environment:
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-http://localhost:8080}
+      NTFY_LISTEN_HTTP: ":80"
+      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+      NTFY_CACHE_DURATION: 24h
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      # Deny by default; the backend account may only publish to bugtracker-* topics and
+      # anyone may only read them (topic names are random per user). FR-17, DC-03.
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_AUTH_USERS: "bt-publisher:${NTFY_PUBLISHER_HASH:?run make env}:user"
+      NTFY_AUTH_ACCESS: "bt-publisher:${NTFY_TOPIC_PREFIX:-bugtracker}-*:wo,everyone:${NTFY_TOPIC_PREFIX:-bugtracker}-*:ro"
+      NTFY_AUTH_TOKENS: "bt-publisher:${NTFY_PUBLISH_TOKEN:?run make env}:backend"
+      NTFY_ENABLE_LOGIN: "false"
+      NTFY_ENABLE_SIGNUP: "false"
+      NTFY_ATTACHMENT_CACHE_DIR: ""
+    ports:
+      - "127.0.0.1:${NTFY_PORT:-8080}:80"
+    volumes:
+      - ntfy-cache:/var/cache/ntfy
+      - ntfy-auth:/var/lib/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 -O - http://localhost:80/v1/health | grep -q '\"healthy\":true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.34.0
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_MAX_MESSAGES: "5000"
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: bugtracker-backend:local
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Inside the compose network the services are reached by name.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-bugtracker}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-bugtracker}
+      NTFY_PUBLISH_URL: http://ntfy:80
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      ATTACHMENT_DIR: /data/attachments
+      ML_ARTIFACTS_DIR: /srv/ml/artifacts
+      # Inference threads per step; keeps a laptop CPU (and its fan) calm.
+      ML_THREADS: ${ML_THREADS:-2}
+      OMP_NUM_THREADS: ${ML_THREADS:-2}
+      # uvicorn worker processes. Each loads the models (~0.7 GB) and its own index copy.
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - attachments:/data/attachments
+      # Trained models from `make train` / `make model-download` (git-ignored, read-only).
+      - ./ml/artifacts:/srv/ml/artifacts:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      ntfy:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 10
+
+  # Benchmark server (`make bench`): same image, separate database with 50,000 real Eclipse
+  # reports (backend/scripts/bench_data.py). Not started by `make up`.
+  backend-bench:
+    profiles: ["bench"]
+    image: bugtracker-backend:local
+    pull_policy: never
+    restart: "no"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-bugtracker}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-bugtracker}_bench
+      NTFY_PUBLISH_URL: http://ntfy:80
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      ML_ARTIFACTS_DIR: /srv/ml/artifacts
+      ML_THREADS: ${BENCH_ML_THREADS:-1}
+      OMP_NUM_THREADS: ${BENCH_ML_THREADS:-1}
+      WEB_CONCURRENCY: ${BENCH_WORKERS:-3}
+      # 100 load-test users log in at once from one address.
+      LOGIN_RATE_LIMIT_ATTEMPTS: "100000"
+    ports:
+      - "127.0.0.1:${BENCH_PORT:-8001}:8000"
+    volumes:
+      - ./ml/artifacts:/srv/ml/artifacts:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+
+volumes:
+  pgdata:
+  ntfy-cache:
+  ntfy-auth:
+  attachments:

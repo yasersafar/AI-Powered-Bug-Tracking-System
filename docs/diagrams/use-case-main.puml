@@ -1,0 +1,74 @@
+@startuml use-case-main
+title AI-Powered Bug Tracking System – main use cases
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam packageStyle rectangle
+
+actor "Reporter" as R
+actor "Developer" as D
+actor "Project Manager" as PM
+actor "Administrator" as A
+actor "AI Service\n(in-process triage)" as AI <<system>>
+actor "Notification Service\n(ntfy + SMTP)" as N <<system>>
+
+D -|> R
+PM -|> R
+
+rectangle "Bug Tracker (VS Code extension + backend)" {
+  usecase "Register / Log in" as UC_Auth
+  usecase "Manage own profile\nand notifications" as UC_Profile
+  usecase "Submit bug report" as UC_Submit
+  usecase "Check for duplicates\nwhile typing" as UC_Dup
+  usecase "Discard report\n(duplicate found)" as UC_Discard
+  usecase "Run AI triage" as UC_Triage
+  usecase "Attach files" as UC_Attach
+  usecase "Search and filter bugs" as UC_Search
+  usecase "View bug" as UC_View
+  usecase "Comment on bug" as UC_Comment
+  usecase "Change bug status" as UC_Status
+  usecase "Close as duplicate\nor invalid" as UC_CloseDup
+  usecase "Override severity" as UC_Override
+  usecase "Assign developer" as UC_Assign
+  usecase "Manage projects\nand members" as UC_Projects
+  usecase "View project dashboard" as UC_Dash
+  usecase "Manage developer profiles" as UC_Profiles
+  usecase "Track developers" as UC_Track
+  usecase "Configure AI thresholds" as UC_Settings
+  usecase "Send notification" as UC_Notify
+}
+
+R --> UC_Auth
+R --> UC_Profile
+R --> UC_Submit
+R --> UC_Search
+R --> UC_View
+R --> UC_Comment
+R --> UC_Status
+D --> UC_Override
+PM --> UC_Assign
+PM --> UC_Projects
+PM --> UC_Dash
+A --> UC_Profiles
+A --> UC_Track
+A --> UC_Settings
+
+UC_Submit ..> UC_Triage : <<include>>
+UC_Dup ..> UC_Submit : <<extend>>
+UC_Discard ..> UC_Submit : <<extend>>\n(likely duplicate)
+UC_Attach ..> UC_Submit : <<extend>>
+UC_CloseDup ..> UC_Status : <<extend>>\n(Open -> Closed)
+UC_Override ..> UC_View : <<extend>>
+UC_Assign ..> UC_Notify : <<include>>
+UC_Status ..> UC_Notify : <<include>>
+
+UC_Triage -- AI
+UC_Dup -- AI
+UC_Notify -- N
+
+note bottom of UC_Triage
+  Duplicates -> severity -> developers over one
+  shared context. If the AI is off, slow or fails,
+  the bug is still saved as Unclassified (NFR-10).
+end note
+@enduml

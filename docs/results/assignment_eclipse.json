@@ -1,0 +1,55 @@
+{
+  "provenance": {
+    "generated_at": "2026-11-23T17:33:21+00:00",
+    "python": "3.11.18",
+    "machine": "Darwin arm64",
+    "scikit_learn": "1.9.1",
+    "torch": "2.15.0"
+  },
+  "task": "developer assignment, CNN-LSTM (FR-12)",
+  "dataset": "eclipse",
+  "candidate_developers": 120,
+  "min_fixes_per_developer_in_training": 50,
+  "sample_most_recent_fixed_bugs": null,
+  "train_size": 29462,
+  "validation_size": 3274,
+  "test_size_covered": 6713,
+  "test_size_total": 8691,
+  "test_coverage": 0.7724,
+  "test_period": [
+    "2007-09-23",
+    "2011-05-06"
+  ],
+  "accuracy": {
+    "top1": 0.3307,
+    "top3": 0.5202,
+    "top5": 0.6356,
+    "top10": 0.7806
+  },
+  "component_heuristic_accuracy": {
+    "top1": 0.2622,
+    "top3": 0.3922,
+    "top5": 0.5687
+  },
+  "reassignments": {
+    "model_mean": 6.551,
+    "model_median": 2.0,
+    "random_mean_over_5_seeds": 58.973,
+    "random_per_seed": [
+      59.76,
+      58.956,
+      59.228,
+      58.233,
+      58.687
+    ],
+    "reduction_vs_random": 0.8889,
+    "component_heuristic_mean": 8.099,
+    "reduction_vs_component_heuristic": 0.1912,
+    "observed_bugzilla_assignee_changes_mean": 1.357,
+    "method": "reassignments = rank of real fixer - 1 when following the ranked list"
+  },
+  "latency_ms_single_report": {
+    "p50": 1.33,
+    "p95": 1.47
+  }
+}

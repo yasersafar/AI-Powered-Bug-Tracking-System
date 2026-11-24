@@ -1,0 +1,68 @@
+@startuml architecture
+title Architecture – components as implemented
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam componentStyle rectangle
+
+package "VS Code extension (TypeScript, extension/)" {
+  [Tree views\nMyBugsTree, ProjectBugsTree,\nNotificationsTree] as Trees
+  [Webviews\nReportBugPanel, BugPanel,\nDashboardPanel, AdminPanel] as Webviews
+  [Commands + Search\n(commands.ts, search.ts)] as Commands
+  [Session\n(SecretStorage JWT)] as Session
+  [ApiClient] as Client
+  [Notifier\n(polls /notifications)] as Notifier
+}
+
+package "Backend (FastAPI, backend/app)" {
+  [Routers /api/v1\nauth, users, projects, bugs,\ncomments, attachments, ai,\nnotifications, admin; /health] as Routers
+  [Dependencies\nJWT auth, RBAC, rate limit] as Deps
+  [Services\nbug, lifecycle, access, audit,\ncomment, attachment, project,\nprofile, stats, settings,\ndeveloper_activity] as Services
+  [triage_service\nTriageEngine] as Triage
+  [notification_service\n+ NotificationDispatcher] as Notify
+  [SQLAlchemy models\n+ Alembic migrations] as Models
+}
+
+package "ML (Python, ml/)" {
+  [ml.service\nTriagePipeline, TriageContext,\nBugIndex, load_models] as Pipeline
+  [duplicate\nBM25Index, DuplicateDetector,\nEmbedder (MiniLM)] as Dup
+  [severity\nSeverityClassifier\n(TF-IDF + soft voting)] as Sev
+  [assignment\nDeveloperRanker (CNN-LSTM),\ncold_start.recommend] as Assign
+}
+
+database "PostgreSQL 16" as DB
+folder "ml/artifacts\n(trained models, read-only)" as Artifacts
+folder "Attachment volume" as Files
+node "ntfy (self-hosted)" as Ntfy
+node "SMTP (Mailpit in dev)" as Smtp
+
+Trees --> Client
+Webviews --> Client
+Commands --> Client
+Notifier --> Client
+Client --> Session : token
+Client --> Routers : HTTPS/JSON\n(Bearer JWT)
+
+Routers --> Deps
+Routers --> Services
+Routers --> Triage
+Services --> Models
+Services --> Notify
+Triage --> Pipeline : TriageContext
+Triage --> Models : settings, developers,\nbug_embedding, model_state
+Models --> DB
+Services --> Files
+Notify --> Ntfy
+Notify --> Smtp
+
+Pipeline --> Dup
+Pipeline --> Sev
+Pipeline --> Assign
+Dup ..> Artifacts
+Sev ..> Artifacts
+Assign ..> Artifacts
+
+note right of Pipeline
+  Runs in the backend process on CPU.
+  No text leaves the machine (DC-03).
+end note
+@enduml

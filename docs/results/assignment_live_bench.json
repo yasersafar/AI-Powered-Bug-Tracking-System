@@ -1,0 +1,79 @@
+{
+  "generated_at": "2026-11-23T22:27:23+00:00",
+  "database": "bugtracker_bench",
+  "developers": 10,
+  "min_resolutions_per_developer": 10,
+  "resolutions": {
+    "train": 5118,
+    "validation": 731,
+    "test": 1463
+  },
+  "epochs_run": 10,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.7857,
+      "valid_top1": 0.2927,
+      "valid_top3": 0.8235
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.9567,
+      "valid_top1": 0.5404,
+      "valid_top3": 0.8399
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.7817,
+      "valid_top1": 0.5691,
+      "valid_top3": 0.8495
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.7157,
+      "valid_top1": 0.5554,
+      "valid_top3": 0.8482
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.6552,
+      "valid_top1": 0.5896,
+      "valid_top3": 0.8564
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.5914,
+      "valid_top1": 0.5855,
+      "valid_top3": 0.8495
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.5345,
+      "valid_top1": 0.6019,
+      "valid_top3": 0.8577
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.4959,
+      "valid_top1": 0.6047,
+      "valid_top3": 0.8673
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.4241,
+      "valid_top1": 0.6101,
+      "valid_top3": 0.8673
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.4106,
+      "valid_top1": 0.6183,
+      "valid_top3": 0.8714
+    }
+  ],
+  "training_seconds": 205.5,
+  "test_top1": 0.607,
+  "test_top3": 0.8756,
+  "majority_class_top1": 0.3103,
+  "method": "Time split by resolution date: 70% train / 10% validation (early stopping) / 20% test. Classes = developers of this database with >= N resolutions."
+}

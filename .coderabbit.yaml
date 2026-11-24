@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit AI pull-request review. Activated by installing the CodeRabbit GitHub App on
+# this repository (owner, once). It reviews the team's own code at PR time only; it is never
+# called by the running system (DC-03 concerns runtime bug data, see docs/decisions/coderabbit-snyk.md).
+language: en-US
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  # Keep summaries inside CodeRabbit's own comment, not in the PR description,
+  # so PR descriptions stay written by the team.
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_title_placeholder: ""
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_filters:
+    - "!**/package-lock.json"
+    - "!docs/openapi.json"
+    - "!docs/results/**"
+    - "!**/*.png"
+    - "!**/*.svg"
+  path_instructions:
+    - path: "backend/**/*.py"
+      instructions: >-
+        FastAPI + SQLAlchemy 2 backend. Check: every route enforces authorization (403 for
+        other projects' resources, FR-03/NFR-06); inputs validated with Pydantic (NFR-07);
+        audit_log written in the service layer for field, status, assignment and severity
+        changes (FR-08); invalid status transitions return 409 (FR-06); no secrets in code.
+    - path: "backend/tests/**"
+      instructions: >-
+        Tests must assert behaviour, not implementation details. Flag tests that can never fail.
+    - path: "ml/**/*.py"
+      instructions: >-
+        CPU-only, local models. Flag any call to an external AI/LLM API (DC-03), any evaluation
+        that touches the test split during training or tuning, and any hard-coded metric value.
+    - path: "extension/**/*.ts"
+      instructions: >-
+        VS Code extension in strict TypeScript. JWT must only be stored in SecretStorage.
+        Webviews need a Content-Security-Policy, no remote scripts, VS Code theme CSS variables,
+        labels/ARIA and keyboard access (WCAG 2.1 AA, NFR-12).
+  tools:
+    ruff:
+      enabled: true
+    eslint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    hadolint:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+    markdownlint:
+      enabled: true
+
+chat:
+  auto_reply: true

@@ -1,0 +1,147 @@
+{
+  "provenance": {
+    "generated_at": "2026-11-23T17:19:05+00:00",
+    "python": "3.11.18",
+    "machine": "Darwin arm64",
+    "scikit_learn": "1.9.1",
+    "torch": "2.15.0"
+  },
+  "task": "duplicate bug report retrieval (FR-10)",
+  "dataset": "logpai/bugrepo eclipse_platform",
+  "reports": 85156,
+  "period": [
+    "2001-10-11",
+    "2013-12-30"
+  ],
+  "test_period_start": "2008-05-01",
+  "pipeline": {
+    "retrieval": "BM25 Okapi top-50",
+    "rerank": "all-MiniLM-L6-v2 cosine",
+    "fusion": "w*cosine + (1-w)*bm25/max",
+    "chosen_w": 0.7
+  },
+  "validation": {
+    "queries": 1002,
+    "by_weight": {
+      "w=0.0": {
+        "recall@1": 0.3333,
+        "recall@5": 0.507,
+        "recall@10": 0.5709,
+        "mrr": 0.4113
+      },
+      "w=0.25": {
+        "recall@1": 0.3633,
+        "recall@5": 0.5479,
+        "recall@10": 0.6058,
+        "mrr": 0.4428
+      },
+      "w=0.5": {
+        "recall@1": 0.3902,
+        "recall@5": 0.5778,
+        "recall@10": 0.6347,
+        "mrr": 0.4718
+      },
+      "w=0.6": {
+        "recall@1": 0.3902,
+        "recall@5": 0.5878,
+        "recall@10": 0.6397,
+        "mrr": 0.4755
+      },
+      "w=0.7": {
+        "recall@1": 0.3962,
+        "recall@5": 0.5908,
+        "recall@10": 0.6407,
+        "mrr": 0.48
+      },
+      "w=0.8": {
+        "recall@1": 0.3912,
+        "recall@5": 0.5848,
+        "recall@10": 0.6377,
+        "mrr": 0.4742
+      },
+      "w=0.9": {
+        "recall@1": 0.3802,
+        "recall@5": 0.5649,
+        "recall@10": 0.6327,
+        "mrr": 0.464
+      },
+      "w=1.0": {
+        "recall@1": 0.3503,
+        "recall@5": 0.5529,
+        "recall@10": 0.6158,
+        "mrr": 0.44
+      },
+      "bm25_only": {
+        "recall@1": 0.3333,
+        "recall@5": 0.507,
+        "recall@10": 0.5709,
+        "mrr": 0.4113
+      },
+      "dense_only_full_scan": {
+        "recall@1": 0.3273,
+        "recall@5": 0.5399,
+        "recall@10": 0.6218,
+        "mrr": 0.4227
+      },
+      "bm25_candidate_recall@50": {
+        "recall": 0.6956
+      }
+    }
+  },
+  "test_realistic_pool_all_earlier_reports": {
+    "queries": 1883,
+    "w=0.7": {
+      "recall@1": 0.3686,
+      "recall@5": 0.5289,
+      "recall@10": 0.5826,
+      "mrr": 0.4422
+    },
+    "bm25_only": {
+      "recall@1": 0.2974,
+      "recall@5": 0.4631,
+      "recall@10": 0.5157,
+      "mrr": 0.3736
+    },
+    "dense_only_full_scan": {
+      "recall@1": 0.3128,
+      "recall@5": 0.4817,
+      "recall@10": 0.5481,
+      "mrr": 0.394
+    },
+    "bm25_candidate_recall@50": {
+      "recall": 0.6367
+    }
+  },
+  "test_benchmark_comparable_pool_test_period_only": {
+    "queries": 1613,
+    "w=0.7": {
+      "recall@1": 0.4656,
+      "recall@5": 0.641,
+      "recall@10": 0.6875,
+      "mrr": 0.5423
+    },
+    "bm25_only": {
+      "recall@1": 0.3751,
+      "recall@5": 0.5555,
+      "recall@10": 0.6119,
+      "mrr": 0.4605
+    },
+    "dense_only_full_scan": {
+      "recall@1": 0.4445,
+      "recall@5": 0.6206,
+      "recall@10": 0.6925,
+      "mrr": 0.5279
+    },
+    "bm25_candidate_recall@50": {
+      "recall": 0.7316
+    }
+  },
+  "latency_live_search": {
+    "p50_ms": 16.0,
+    "p95_ms": 37.7,
+    "max_ms": 44.2,
+    "samples": 300,
+    "index_size": 85156,
+    "incremental_add_ms": 6.3
+  }
+}
