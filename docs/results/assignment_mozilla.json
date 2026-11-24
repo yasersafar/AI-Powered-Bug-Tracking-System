@@ -1,0 +1,55 @@
+{
+  "provenance": {
+    "generated_at": "2026-11-23T17:48:36+00:00",
+    "python": "3.11.18",
+    "machine": "Darwin arm64",
+    "scikit_learn": "1.9.1",
+    "torch": "2.15.0"
+  },
+  "task": "developer assignment, CNN-LSTM (FR-12)",
+  "dataset": "mozilla",
+  "candidate_developers": 243,
+  "min_fixes_per_developer_in_training": 50,
+  "sample_most_recent_fixed_bugs": 80000,
+  "train_size": 35553,
+  "validation_size": 3951,
+  "test_size_covered": 5764,
+  "test_size_total": 12828,
+  "test_coverage": 0.4493,
+  "test_period": [
+    "2011-05-08",
+    "2012-12-29"
+  ],
+  "accuracy": {
+    "top1": 0.165,
+    "top3": 0.3099,
+    "top5": 0.3921,
+    "top10": 0.5043
+  },
+  "component_heuristic_accuracy": {
+    "top1": 0.1705,
+    "top3": 0.3095,
+    "top5": 0.3765
+  },
+  "reassignments": {
+    "model_mean": 27.564,
+    "model_median": 9.0,
+    "random_mean_over_5_seeds": 120.812,
+    "random_per_seed": [
+      120.649,
+      119.733,
+      120.449,
+      122.412,
+      120.817
+    ],
+    "reduction_vs_random": 0.7718,
+    "component_heuristic_mean": 44.127,
+    "reduction_vs_component_heuristic": 0.3753,
+    "observed_bugzilla_assignee_changes_mean": 1.125,
+    "method": "reassignments = rank of real fixer - 1 when following the ranked list"
+  },
+  "latency_ms_single_report": {
+    "p50": 1.35,
+    "p95": 1.46
+  }
+}

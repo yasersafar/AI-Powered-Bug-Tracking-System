@@ -1,0 +1,65 @@
+{
+  "provenance": {
+    "generated_at": "2026-11-23T22:21:58+00:00",
+    "client_machine": "Darwin arm64",
+    "base_url": "http://127.0.0.1:8001",
+    "git_commit": "88f7790",
+    "server": {
+      "ai": {
+        "enabled": true,
+        "state": "ready",
+        "error": null,
+        "models": {
+          "embedding": "loaded",
+          "severity": "loaded",
+          "assignment_history": "no live CNN-LSTM yet (needs resolution history); using history similarity"
+        },
+        "load_seconds": 6.27,
+        "indexed_reports": 50000
+      },
+      "bugs_in_database": 50000
+    },
+    "method": "POST /bugs with held-out Eclipse reports (full triage on every submission). Baseline: 1 user, 60 sequential submissions. Load: 50 concurrent users for 90s, think time uniform 2-8 s. Degradation = load / baseline - 1 of the same percentile."
+  },
+  "baseline_single_user": {
+    "count": 60,
+    "errors": 0,
+    "ai_degraded": 0,
+    "mean_ms": 136.1,
+    "p50_ms": 128.0,
+    "p95_ms": 209.3,
+    "p99_ms": 276.1,
+    "max_ms": 353.1
+  },
+  "concurrent_users": 50,
+  "load": {
+    "count": 862,
+    "errors": 0,
+    "ai_degraded": 0,
+    "mean_ms": 165.8,
+    "p50_ms": 154.0,
+    "p95_ms": 293.0,
+    "p99_ms": 395.8,
+    "max_ms": 501.0,
+    "duration_s": 97.6,
+    "throughput_per_s": 8.83
+  },
+  "degradation": {
+    "p50": 0.2031,
+    "p95": 0.3999,
+    "mean": 0.2182
+  },
+  "failures": {},
+  "burst_all_users_at_once_info_only": {
+    "count": 50,
+    "errors": 0,
+    "ai_degraded": 2,
+    "mean_ms": 2225.5,
+    "p50_ms": 2584.6,
+    "p95_ms": 2790.6,
+    "p99_ms": 2880.3,
+    "max_ms": 2951.0
+  },
+  "target": "p95 degradation < 10%, no failed submissions",
+  "pass": false
+}

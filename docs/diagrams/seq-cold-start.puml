@@ -1,0 +1,46 @@
+@startuml seq-cold-start
+title Developer recommendation with cold start (FR-12, FR-22)
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+autonumber
+
+participant "TriageEngine" as Engine
+database PostgreSQL as DB
+participant "TriagePipeline.assign" as Assign
+participant "DeveloperRanker\n(live CNN-LSTM, if trained)" as Cnn
+participant "BugIndex" as Index
+participant "cold_start.recommend" as Rec
+
+Engine -> DB : project members with role Developer,\nprofiles, open workload, last 50 resolutions
+Engine -> Assign : TriageContext(developers, severity,\nduplicate candidates, settings N, epsilon)
+loop each developer
+  alt known to the live CNN-LSTM
+    Assign -> Cnn : probabilities(report text)
+    Cnn --> Assign : p(developer) / best p  -> history
+  else has resolved reports
+    Assign -> Index : vectors(resolved bug ids)
+    Assign -> Assign : history = mean of 3 best cosine\n(absolute 0-1 scale)
+  else no history (new developer)
+    Assign -> Assign : history = none -> alpha = 0
+  end
+end
+Assign -> Rec : candidates, severity, original fixers
+opt severity = Critical
+  Rec -> Rec : drop Unavailable and workload >= max
+end
+loop each candidate
+  Rec -> Rec : alpha = min(1, resolved_count / N)
+  Rec -> Rec : profile = TF-IDF cosine(report, skills +\ncomponents + languages) + availability bonus
+  Rec -> Rec : score = alpha * history + (1 - alpha) * profile
+  opt fixed the original of a likely duplicate
+    Rec -> Rec : score += 0.2
+  end
+  Rec -> Rec : reason = "history match" | "skill match" |\n"new developer (cold start)"
+end
+Rec -> Rec : sort, take top 3
+opt random < epsilon and no cold-start developer in top 3
+  Rec -> Rec : slot 3 = best cold-start developer (explored = true)
+end
+Rec --> Assign : 3 recommendations
+Assign --> Engine : recommendations (+ history source in step detail)
+@enduml

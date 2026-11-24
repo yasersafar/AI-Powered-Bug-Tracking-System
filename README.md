@@ -1,6 +1,6 @@
 # AI-Powered Bug Tracking System
 
-[![Status](https://img.shields.io/badge/status-in%20development-yellow)](#project-status)
+[![Status](https://img.shields.io/badge/status-implemented-brightgreen)](#project-status)
 [![Platform](https://img.shields.io/badge/platform-VS%20Code-007ACC)](#architecture)
 [![Backend](https://img.shields.io/badge/backend-Python-3776AB)](#technology-stack)
 [![API](https://img.shields.io/badge/API-OpenAPI%203.0-6BA539)](#quality-attributes)
@@ -44,7 +44,7 @@ Bug triage requires three decisions for every incoming report:
 2. How severe is it?
 3. Which developer should resolve it?
 
-In most organizations these decisions are made manually, which does not scale. Published studies report that 10–30% of incoming reports in large projects are duplicates, and misassigned reports are frequently reassigned multiple times before resolution (bug tossing).
+In most organizations these decisions are made manually, which does not scale. In five widely used open-source bug datasets, about 15–19% of reports are duplicates (Meng et al., 2024), and misassigned reports are frequently reassigned multiple times before resolution (bug tossing).
 
 Prior research has addressed each task individually, validated offline on historical data. This project integrates all three into a deployable system with shared state between modules, real-time latency constraints, and the application infrastructure required for production use.
 
@@ -54,9 +54,11 @@ Prior research has addressed each task individually, validated offline on histor
 
 - **Real-time duplicate detection** while the reporter is typing, before the report is stored
 - **Automatic severity classification** into Low, Medium, High, and Critical
-- **Developer assignment recommendations** ranked by historical resolution data
+- **Developer assignment recommendations** ranked by historical resolution data, with **cold-start handling** for new developers
+- **Shared-state triage pipeline**: a likely duplicate boosts the original's fixer; a Critical bug skips busy developers
 - **Full bug lifecycle management** with status workflow and audit trail
-- **Role-based access control** for Reporters, Developers, and Project Managers
+- **Role-based access control** for Reporters, Developers, Project Managers, and Administrators
+- **Administration**: developer profiles, developer tracking, runtime AI thresholds
 - **Project dashboards** with bug trends and resolution-time metrics
 - **Email and in-app notifications** for assignment, status, and critical-severity events
 - **Graceful degradation** when the AI service is unavailable
@@ -71,22 +73,24 @@ flowchart TB
         EXT["VS Code Extension<br/>(TypeScript)"]
     end
 
-    subgraph Server["AI Backend Service (Python)"]
-        API["REST API"]
-        DUP["Duplicate Detection"]
-        SEV["Severity Classification"]
-        DEV["Developer Assignment"]
+    subgraph Server["Backend (Python 3.11, FastAPI)"]
+        API["REST API /api/v1"]
+        subgraph Triage["Triage pipeline (in-process, CPU)"]
+            DUP["Duplicate Detection"]
+            SEV["Severity Classification"]
+            DEV["Developer Assignment"]
+        end
     end
 
-    subgraph Storage["Persistence Layer"]
-        DB[("PostgreSQL / MySQL")]
+    subgraph Storage["Persistence and messaging"]
+        DB[("PostgreSQL 16")]
+        NT["ntfy (self-hosted) + SMTP"]
     end
 
-    EXT <-->|"HTTPS (TLS 1.2+)"| API
-    API --> DUP
-    API --> SEV
-    API --> DEV
+    EXT <-->|"HTTPS (TLS 1.2+ via reverse proxy)"| API
+    API --> DUP --> SEV --> DEV
     API <-->|"ACID transactions"| DB
+    API --> NT
 ```
 
 **Design rationale**
@@ -94,7 +98,7 @@ flowchart TB
 | Decision | Reason |
 |:--|:--|
 | Frontend as a VS Code extension | Removes context switching; no additional tooling for teams |
-| AI inference on a separate backend | The VS Code runtime cannot host heavy model inference |
+| AI inference on the backend | The VS Code runtime cannot host heavy model inference; models run in the backend process on CPU |
 | Stateless backend | Enables horizontal scaling behind a load balancer |
 | Relational database | ACID guarantees for bug records, audit logs, and user data |
 | Minimal data transmission | Only report text and metadata are sent; source code is never uploaded |
@@ -117,7 +121,9 @@ flowchart TD
     H --> I["Persist and notify team"]
 ```
 
-Outputs of earlier stages (duplicate status, severity) are passed as inputs to later stages, so the modules share state rather than operating independently.
+Outputs of earlier stages (duplicate status, severity) are passed as inputs to later stages, so the modules share state rather than operating independently (`ml/service/context.py`, `TriageContext`). Each stage has its own time budget; a failed or slow stage is marked degraded and the report is still saved, as `Unclassified` if no severity is available.
+
+Detailed diagrams (use case, architecture, deployment, class, ERD, sequence, state, activity) are in [`docs/diagrams/`](docs/diagrams/).
 
 ---
 
@@ -127,7 +133,7 @@ Outputs of earlier stages (duplicate status, severity) are passed as inputs to l
 |:--|:--|:--|:--|
 | Duplicate Detection | Two-phase: BM25 retrieval followed by semantic similarity re-ranking | Up to 3 candidate matches with similarity score | Recall@5 > 80% |
 | Severity Classification | TF-IDF features with SVM / Random Forest / Naive Bayes voting ensemble | Low, Medium, High, Critical | Accuracy ≥ 85% |
-| Developer Assignment | CNN-LSTM trained on historical assignment data | Top 3 ranked developers | ≥ 20% reduction in reassignments vs. random baseline |
+| Developer Assignment | CNN-LSTM trained on historical assignment data, blended with profile matching for cold start: score = α·history + (1−α)·profile, α = min(1, resolved/N) | Top 3 ranked developers with a reason | ≥ 20% reduction in reassignments vs. random baseline |
 
 **Model selection.** Lightweight, CPU-friendly models were chosen over transformer and LLM alternatives. The literature review found the accuracy difference (roughly 5–10 points) does not justify GPU infrastructure for a system with sub-second latency requirements.
 
@@ -158,19 +164,21 @@ Each transition is restricted to authorized roles and logged with timestamp and 
 | Layer | Technology |
 |:--|:--|
 | Client | VS Code Extension API, TypeScript |
-| Backend | Python, Flask or FastAPI |
-| Machine Learning | scikit-learn (TF-IDF, SVM, RF, NB), BM25, semantic similarity model, CNN-LSTM |
-| Database | PostgreSQL or MySQL |
-| API Specification | OpenAPI 3.0 |
+| Backend | Python 3.11, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic |
+| Machine Learning | scikit-learn (TF-IDF, SVM, RF, NB), BM25, sentence-transformers (`all-MiniLM-L6-v2`, local), PyTorch CNN-LSTM (CPU) |
+| Notifications | Self-hosted ntfy, SMTP (Mailpit in development), VS Code notifications |
+| Infrastructure | Docker Compose, GitHub Actions, CodeRabbit, Snyk |
+| Database | PostgreSQL 16 |
+| API Specification | OpenAPI 3.0.3 ([`docs/openapi.json`](docs/openapi.json)) |
 
 ---
 
 ## Requirements
 
-The full specification defines **19 functional requirements**, **14 non-functional requirements**, and **5 design constraints**.
+The specification defines **22 functional requirements**, **14 non-functional requirements**, and **5 design constraints**. Each one is traced to code, tests and status in [`docs/traceability.md`](docs/traceability.md).
 
 <details>
-<summary><strong>Functional requirements (FR-01 – FR-19)</strong></summary>
+<summary><strong>Functional requirements (FR-01 – FR-22)</strong></summary>
 
 | ID | Requirement | Area | Priority |
 |:--|:--|:--|:--|
@@ -193,6 +201,9 @@ The full specification defines **19 functional requirements**, **14 non-function
 | FR-17 | In-App Alerts | Notifications | Medium |
 | FR-18 | Project Management | Administration | High |
 | FR-19 | Team Membership | Administration | High |
+| FR-20 | Admin-Managed Developer Profiles | Administration | High |
+| FR-21 | Developer Tracking | Administration | Medium |
+| FR-22 | Cold-Start Handling | AI Features | High |
 
 </details>
 
@@ -202,9 +213,9 @@ The full specification defines **19 functional requirements**, **14 non-function
 | ID | Constraint | Technology / Standard |
 |:--|:--|:--|
 | DC-01 | VS Code Extension API compliance | TypeScript / JavaScript |
-| DC-02 | AI inference offloaded to dedicated backend | Flask / FastAPI, REST |
+| DC-02 | AI inference offloaded to the backend | FastAPI, REST |
 | DC-03 | No source code transmitted externally | GDPR, UAE data protection law |
-| DC-04 | Relational database with ACID transactions | PostgreSQL / MySQL |
+| DC-04 | Relational database with ACID transactions | PostgreSQL 16 |
 | DC-05 | REST API documented before acceptance testing | OpenAPI 3.0 |
 
 </details>
@@ -223,7 +234,7 @@ The full specification defines **19 functional requirements**, **14 non-function
 | NFR-06 | Security | Authorization enforced at the API layer (HTTP 403) |
 | NFR-07 | Security | Server-side validation against SQLi, XSS, path traversal |
 | NFR-08 | Scalability | Stateless backend with connection pooling |
-| NFR-09 | Reliability | 99% availability during business hours |
+| NFR-09 | Reliability | Health endpoint and automatic restart (towards 99% availability during business hours) |
 | NFR-10 | Reliability | Submissions succeed when AI service is down (severity: Unclassified) |
 | NFR-11 | Usability | First bug report within 5 minutes of registration |
 | NFR-12 | Accessibility | WCAG 2.1 Level AA |
@@ -234,56 +245,86 @@ The full specification defines **19 functional requirements**, **14 non-function
 
 ## Datasets and Evaluation
 
-**Datasets**
+**Datasets** (public, documented in [`ml/data/README.md`](ml/data/README.md))
 
-| Dataset | Size | Purpose |
+| Dataset | Size used | Purpose |
 |:--|:--|:--|
-| Eclipse Bugzilla | 380,000+ reports (2001–2012) | Primary training set for severity and assignment |
-| Mozilla Firefox Bugzilla | ~550,000 reports | Out-of-distribution evaluation for assignment |
-| Meng et al. (2024) benchmark | Maintainer-verified duplicate pairs | Duplicate detection evaluation |
+| Eclipse Bugzilla (Lamkanfi et al., MSR 2013, joined with logpai/bugrepo text) | 121,908 reports | Severity, assignment |
+| Mozilla Bugzilla (same sources) | 326,245 reports (most recent 80,000 fixed bugs for assignment) | Assignment generalisation |
+| Eclipse Platform / JDT duplicates (logpai/bugrepo, the data used by Meng et al. 2024) | 85,156 / 45,296 reports | Duplicate detection |
 
-**Evaluation methodology**
+All splits are time-based (train on older reports, test on newer ones); settings were tuned on training/validation data only.
 
-| Component | Metrics | Protocol |
+**Results** (every number from a script; full table and analysis in [`docs/results/RESULTS.md`](docs/results/RESULTS.md))
+
+| Target | Achieved | |
 |:--|:--|:--|
-| Severity | Accuracy, macro/weighted Precision, Recall, F1, confusion matrix | 80/20 split, 10-fold CV for tuning |
-| Duplicates | Recall@1/5/10, MRR, Average Precision | Benchmark comparison against [13], [16] |
-| Assignment | Top-1/3/5 Accuracy, Mean Number of Reassignments | Held-out Eclipse test set, Mozilla generalization |
-| System | End-to-end latency, task completion time | Load test at 50 users, usability study (n = 5) |
+| Duplicate Recall@5 > 80% | 52.9% (Platform), 55.4% (JDT) searching all earlier reports | Not met |
+| Severity accuracy ≥ 85% | 75.8% (majority baseline 76.3%) | Not met |
+| ≥ 20% fewer reassignments than random | −88.9% (Eclipse), −77.2% (Mozilla) | Met |
+| Duplicates + severity ≤ 1.5 s; assignment ≤ 3 s | 160 ms / 145 ms at p95 over HTTP, 50,000 indexed reports | Met |
+| Lists and search ≤ 2 s at 100 concurrent users | 103 ms worst p95, 0 errors | Met |
+| 50 concurrent submissions, < 10% slower | +20% p50, +40% p95 | Not met |
+| Backend test coverage ≥ 70% | 95.35% (171 tests, [`coverage_backend.txt`](docs/results/coverage_backend.txt)) | Met |
+
+A usability study (n = 5) is planned and has not been run yet.
 
 ---
 
 ## Repository Structure
 
-> Planned layout. Subject to change during implementation.
-
 ```
 .
-├── extension/          # VS Code extension (TypeScript)
-├── backend/            # REST API service (Python)
-│   ├── api/
-│   ├── services/
+├── backend/            # FastAPI service (Python 3.11): api/, core/, models/, schemas/, services/
+│   ├── alembic/        # database migrations
+│   ├── scripts/        # seed, OpenAPI export, load tests
 │   └── tests/
-├── ml/                 # Model training, evaluation, and artifacts
-│   ├── duplicate/
-│   ├── severity/
-│   └── assignment/
-├── docs/               # Report, diagrams, OpenAPI specification
-└── README.md
+├── ml/                 # duplicate/, severity/, assignment/, common/, service/ (inference layer)
+├── extension/          # VS Code extension (TypeScript, strict)
+├── docs/               # decisions/, diagrams/, results/, sprints/, report/
+├── .github/workflows/  # CI (lint, type check, tests) and Snyk security scan
+├── docker-compose.yml  # postgres, self-hosted ntfy, mailpit, backend
+├── Makefile            # `make help` lists all developer commands
+└── .env.example        # copy to .env (never commit .env)
 ```
 
 ---
 
 ## Getting Started
 
-> Installation and usage instructions will be published once implementation begins in Capstone II.
+**Prerequisites:** Docker Engine with Compose v2 (Docker Desktop, OrbStack or Colima),
+Python 3.11, Node.js 22, VS Code 1.100+, GNU Make.
 
-**Prerequisites (planned)**
+```bash
+git clone https://github.com/yasersafar/AI-Powered-Bug-Tracking-System.git
+cd AI-Powered-Bug-Tracking-System
+make install   # backend/.venv (backend, ML runtime, dev tools) and extension packages
+make up        # creates .env with generated secrets; starts postgres, ntfy, mailpit, backend
+make seed      # demo data: 8 accounts (password = SEED_PASSWORD in .env), 2 projects, 50 bugs
 
-- Visual Studio Code
-- Node.js (LTS)
-- Python 3.10+
-- PostgreSQL or MySQL
+# AI models (once, about an hour on a laptop CPU); without them bugs are saved as Unclassified
+make install-ml data model-download train
+
+make package-extension   # extension/ai-bug-tracker-0.2.0.vsix, install it in VS Code
+make test                # backend + ML tests;  make test-extension: extension tests in VS Code
+make lint                # ruff, mypy, eslint, tsc, prettier
+make eval                # model evaluation -> docs/results/
+make bench               # latency and load tests -> docs/results/
+```
+
+Guides: [user guide](docs/user-guide.md) (install, first bug in under 5 minutes, admin
+guide, TLS), [demo script](docs/demo-script.md), [traceability](docs/traceability.md),
+decisions in [`docs/decisions/`](docs/decisions/) (including
+[deviations from the original plan](docs/decisions/deviations.md)).
+
+| Service | URL |
+|:--|:--|
+| API docs (Swagger UI) | http://localhost:8000/docs |
+| Health check | http://localhost:8000/health |
+| ntfy (self-hosted push) | http://localhost:8080 |
+| Mailpit (dev inbox) | http://localhost:8025 |
+
+To develop the extension, open `extension/` in VS Code and press **F5**.
 
 ---
 
@@ -296,9 +337,9 @@ The project follows an Agile process with one- to two-week sprints across two se
 | Domain study and literature review | Jan – Mar 2026 | Complete |
 | Requirements specification | Apr 2026 | Complete |
 | Capstone I presentation | May 2026 | Complete |
-| System design and architecture | Sep 2026 | In progress |
-| Implementation and AI integration | Oct – Nov 2026 | Planned |
-| Testing and validation | Nov – Dec 2026 | Planned |
+| System design and architecture | Sep 2026 | Complete |
+| Implementation and AI integration | Oct – Nov 2026 | Complete |
+| Testing and validation | Nov – Dec 2026 | Automated tests and benchmarks complete; usability study pending |
 | Final documentation and presentation | Dec 2026 | Planned |
 
 ---
@@ -349,12 +390,12 @@ We thank Dr. Saqib Iqbal, Dr. Issam Al Azzoni, Prof. Zina Houhamdi, Dr. Musab Hi
 
 Selected sources. The complete bibliography (20 works) is available in the project report.
 
-1. N. Adhikari, R. Bista, and S. Sigdel, "Leveraging machine learning for enhanced bug triaging in open-source software projects," *IEEE Access*, 2025.
-2. R. Bocu, A. Baicoianu, and A. Kerestely, "An extended survey concerning the significance of artificial intelligence and machine learning techniques for bug triage and management," *IEEE Access*, vol. 11, 2023.
+1. N. Adhikari, R. Bista, and J. C. Ferreira, "Leveraging machine learning for enhanced bug triaging in open-source software projects," *IEEE Access*, vol. 13, pp. 136237–136254, 2025.
+2. R. Bocu, A. Baicoianu, and A. Kerestely, "An extended survey concerning the significance of artificial intelligence and machine learning techniques for bug triage and management," *IEEE Access*, vol. 11, pp. 123924–123937, 2023.
 3. S. Mani, A. Sankaran, and R. Aralikatte, "DeepTriage: Exploring the effectiveness of deep learning for bug triaging," arXiv:1801.01275, 2018.
 4. Q. Meng, X. Zhang, G. Ramackers, and J. Visser, "Combining retrieval and classification: Balancing efficiency and accuracy in duplicate bug report detection," arXiv:2404.14877, 2024.
 5. M. Namdar, F. Barzinpour, R. Noorossana, and M. Saidi-Mehrabad, "Automated software bug severity classification using ensemble machine learning scheme: A real case study," *PLOS ONE*, vol. 20, no. 10, 2025.
-6. I. Pikh et al., "Detecting duplicates in bug tracking systems with artificial intelligence: A combined retrieval and classification approach," *Applied Sciences*, vol. 16, no. 1, 2025.
+6. I. Pikh et al., "Detecting duplicates in bug tracking systems with artificial intelligence: A combined retrieval and classification approach," *Applied Sciences*, vol. 16, no. 1, Art. no. 416, 2026.
 7. U. B. Torun, M. T. Demircan, M. F. Gön, and E. Tüzyün, "Past, present, and future of bug tracking in the generative AI era," arXiv:2510.08005, 2025.
 
 ---

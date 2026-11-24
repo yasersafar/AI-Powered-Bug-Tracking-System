@@ -1,0 +1,70 @@
+# Snyk dependency (SCA) and static code (SAST) scanning.
+# Setup (repository owner, once): create a free Snyk account, then add the API token as the
+# repository secret SNYK_TOKEN (Settings -> Secrets and variables -> Actions).
+# Without the secret the job is skipped with a notice instead of failing.
+# See docs/decisions/coderabbit-snyk.md for how this fits the review workflow.
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC: catches newly published CVEs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snyk:
+    name: Snyk scan
+    runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    steps:
+      - name: Skip when SNYK_TOKEN is not configured
+        if: env.SNYK_TOKEN == ''
+        run: echo "::notice::SNYK_TOKEN secret is not set; Snyk scan skipped."
+
+      - uses: actions/checkout@v7
+        if: env.SNYK_TOKEN != ''
+
+      - uses: actions/setup-python@v7
+        if: env.SNYK_TOKEN != ''
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v7
+        if: env.SNYK_TOKEN != ''
+        with:
+          node-version: "22"
+
+      - name: Install project dependencies (Snyk resolves the real dependency tree)
+        if: env.SNYK_TOKEN != ''
+        run: |
+          python -m pip install --upgrade pip
+          pip install "torch~=2.15" --index-url https://download.pytorch.org/whl/cpu
+          pip install -r ml/requirements.txt -e "backend[dev]"
+          (cd extension && npm ci)
+
+      - name: Install Snyk CLI
+        if: env.SNYK_TOKEN != ''
+        run: npm install --global snyk
+
+      # Snyk's pip scanner reads requirements files, not pyproject.toml, so the backend's
+      # declared dependencies are written to a temporary requirements file first.
+      - name: Snyk Open Source (dependencies)
+        if: env.SNYK_TOKEN != ''
+        run: |
+          python -c "import tomllib; p = tomllib.load(open('backend/pyproject.toml', 'rb'))['project']; open('backend/requirements-snyk.txt', 'w').write('\n'.join(p['dependencies'] + p['optional-dependencies']['dev']) + '\n')"
+          # Scan all three parts even if one fails, then fail the step if any of them failed.
+          status=0
+          snyk test --file=backend/requirements-snyk.txt --policy-path=.snyk --package-manager=pip --command=python --severity-threshold=high || status=1
+          snyk test --file=ml/requirements.txt --policy-path=.snyk --package-manager=pip --command=python --severity-threshold=high || status=1
+          snyk test --file=extension/package-lock.json --policy-path=.snyk --severity-threshold=high || status=1
+          exit $status
+
+      - name: Snyk Code (static analysis)
+        if: ${{ !cancelled() && env.SNYK_TOKEN != '' }}
+        run: snyk code test --org=yasersafar --severity-threshold=high

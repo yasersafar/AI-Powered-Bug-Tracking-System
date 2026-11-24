@@ -1,0 +1,24 @@
+@startuml state-bug-lifecycle
+title Bug lifecycle (FR-06, backend/app/services/lifecycle.py)
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+
+[*] --> Open : submitted (severity predicted\nor Unclassified)
+
+Open --> InProgress : PM or assignee;\nautomatic when a PM assigns
+InProgress --> Resolved : assignee\n(resolution recorded)
+Resolved --> Verified : reporter of the bug\nor project Reporter (QA)
+Resolved --> InProgress : reporter / QA:\nverification failed (reopened)
+Verified --> Closed : PM (close_reason = fixed)
+Open --> Closed : PM: invalid or duplicate\n(duplicate_of_id set)
+Closed --> [*]
+
+note right of Open
+  Any other change -> 409 Conflict.
+  A valid change by the wrong role -> 403.
+  Administrators may act as assignee/verifier.
+  Archived projects are read-only.
+  Every change is written to audit_log and
+  notifies reporter and assignee.
+end note
+@enduml

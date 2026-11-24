@@ -1,0 +1,37 @@
+{
+  "provenance": {
+    "generated_at": "2026-11-23T22:37:10+00:00",
+    "method": "In-process TriagePipeline with the trained models; duplicate index of the 50,000 most recent Eclipse Platform reports; 95 held-out later reports (5 warm-up runs not counted); 11 candidate developers; per-step wall time including thread hand-off.",
+    "threads": "4"
+  },
+  "index_reports": 50000,
+  "index_build_seconds": 6.4,
+  "model_load_seconds": 5.96,
+  "queries": 95,
+  "steps": {
+    "duplicates": {
+      "p50_ms": 17.2,
+      "p95_ms": 26.4
+    },
+    "severity": {
+      "p50_ms": 16.0,
+      "p95_ms": 17.8
+    },
+    "assignment": {
+      "p50_ms": 2.4,
+      "p95_ms": 2.7
+    },
+    "duplicates_plus_severity": {
+      "p50_ms": 33.1,
+      "p95_ms": 44.0
+    },
+    "total": {
+      "p50_ms": 35.9,
+      "p95_ms": 47.1
+    }
+  },
+  "pass": {
+    "duplicates_plus_severity_p95_le_1500ms": true,
+    "assignment_p95_le_3000ms": true
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "provenance": {
+    "generated_at": "2026-11-23T23:10:08+00:00",
+    "tool": "axe-core 4.14.1 (WCAG 2.0/2.1 A and AA rules: wcag2a, wcag2aa, wcag21a, wcag21aa)",
+    "method": "`npm run preview` renders the real webview panels (src/webview/*) with data from the seeded backend into static HTML using VS Code's default light theme colours; test/preview/a11y.js runs axe on <main> of each page in a browser. Values below were read from the page output.",
+    "scope_note": "Automated rules cover part of WCAG only; keyboard use and screen-reader wording still need a manual check. 'incomplete' = axe could not decide automatically (manual review)."
+  },
+  "first_scan": {
+    "dashboard": {
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 2,
+          "cause": "chart legend text coloured with the chart colours (light-theme blue #1a85ff on white is below 4.5:1)",
+          "fix": "legend text uses the normal text colour; only the swatch is coloured"
+        }
+      ]
+    },
+    "report-form": {
+      "incomplete": [
+        "aria-prohibited-attr"
+      ],
+      "fix": "role=\"group\" on the attachments list labelled with aria-labelledby"
+    }
+  },
+  "after_fixes": {
+    "report-form": {
+      "violations": 0,
+      "passes": 18,
+      "incomplete": []
+    },
+    "report-result": {
+      "violations": 0,
+      "passes": 12,
+      "incomplete": []
+    },
+    "report-ai-off": {
+      "violations": 0,
+      "passes": 12,
+      "incomplete": []
+    },
+    "bug-detail": {
+      "violations": 0,
+      "passes": 18,
+      "incomplete": []
+    },
+    "dashboard": {
+      "violations": 0,
+      "passes": 21,
+      "incomplete": [
+        "color-contrast"
+      ]
+    },
+    "admin": {
+      "violations": 0,
+      "passes": 15,
+      "incomplete": []
+    }
+  }
+}

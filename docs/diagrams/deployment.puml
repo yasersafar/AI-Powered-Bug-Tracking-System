@@ -1,0 +1,44 @@
+@startuml deployment
+title Deployment – docker compose (docker-compose.yml)
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+
+node "Developer workstation" {
+  node "VS Code" {
+    artifact "ai-bug-tracker-0.2.0.vsix" as Vsix
+  }
+  node "Docker (Colima VM / Docker Desktop)" {
+    node "backend\nimage bugtracker-backend:local\nuvicorn app.main:app\nWEB_CONCURRENCY workers" as Backend {
+      component "FastAPI API" as Api
+      component "Triage models (CPU)" as Models
+    }
+    node "db\npostgres:16.16-alpine" as Db
+    node "ntfy\nbinwiederhier/ntfy:v2.38.1\ndeny-all, publish-only token" as Ntfy
+    node "mailpit\naxllent/mailpit:v1.34.0" as Mail
+    node "backend-bench (profile: bench)\n<db>_bench database" as Bench
+    database "pgdata" as VolDb
+    storage "attachments" as VolFiles
+    storage "ntfy-cache, ntfy-auth" as VolNtfy
+    folder "./ml/artifacts (read-only bind mount)" as VolArtifacts
+  }
+}
+
+node "Phone / desktop ntfy app" as Phone
+
+Vsix --> Api : HTTP 127.0.0.1:8000\n(TLS via reverse proxy in production, NFR-05)
+Api --> Db : 5432
+Api --> Ntfy : publish (Bearer token)
+Api --> Mail : SMTP 1025
+Bench --> Db
+Db --> VolDb
+Backend --> VolFiles
+Ntfy --> VolNtfy
+Models ..> VolArtifacts
+Phone --> Ntfy : subscribe to own random topic\n127.0.0.1:8080
+
+note bottom of Backend
+  Healthcheck GET /health, restart: unless-stopped (NFR-09).
+  Runs `alembic upgrade head` before starting.
+  All ports bound to 127.0.0.1.
+end note
+@enduml

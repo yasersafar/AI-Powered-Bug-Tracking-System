@@ -1,0 +1,46 @@
+@startuml use-case-admin
+title Administration – detailed use cases (FR-03, FR-18..FR-21, NFR-14)
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam packageStyle rectangle
+
+actor "Project Manager" as PM
+actor "Administrator" as A
+
+rectangle "Administration (Admin webview + /admin, /projects, /users)" {
+  usecase "Create / rename project" as UC_Project
+  usecase "Archive project\n(read-only)" as UC_Archive
+  usecase "Add / remove member\nwith project role" as UC_Member
+  usecase "View project dashboard" as UC_Dash
+  usecase "Create developer profile" as UC_PCreate
+  usecase "Edit developer profile\n(skills, components, languages,\nlevel, availability, max workload)" as UC_PEdit
+  usecase "Deactivate / activate profile" as UC_PDeact
+  usecase "View developer tracking\n(resolved, avg time,\nreassignments, workload, alpha)" as UC_Track
+  usecase "Edit runtime thresholds\n(similarity, N, epsilon, timeouts)" as UC_Settings
+  usecase "Switch AI triage off/on" as UC_AiSwitch
+  usecase "Change user role /\ndeactivate user" as UC_Users
+  usecase "Record in audit log" as UC_Audit
+  usecase "Refresh cold-start flags" as UC_Flags
+}
+
+PM --> UC_Project
+PM --> UC_Archive
+PM --> UC_Member
+PM --> UC_Dash
+A --> UC_PCreate
+A --> UC_PEdit
+A --> UC_PDeact
+A --> UC_Track
+A --> UC_Settings
+A --> UC_Users
+A -|> PM
+
+UC_PCreate ..> UC_Audit : <<include>>
+UC_PEdit ..> UC_Audit : <<include>>
+UC_PDeact ..> UC_Audit : <<include>>
+UC_Member ..> UC_Audit : <<include>>
+UC_Users ..> UC_Audit : <<include>>
+UC_AiSwitch ..> UC_Settings : <<extend>>
+UC_Flags ..> UC_Settings : <<extend>>\n(cold_start_threshold changed)
+@enduml

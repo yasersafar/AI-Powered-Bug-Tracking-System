@@ -1,0 +1,100 @@
+{
+  "provenance": {
+    "generated_at": "2026-11-23T17:10:34+00:00",
+    "python": "3.11.18",
+    "machine": "Darwin arm64",
+    "scikit_learn": "1.9.1",
+    "torch": "2.15.0"
+  },
+  "task": "severity classification - hyper-parameter tuning",
+  "dataset": "eclipse",
+  "split": {
+    "train_size": 84774,
+    "test_size": 21193,
+    "train_period": [
+      "2001-10-10",
+      "2007-05-28"
+    ],
+    "test_period": [
+      "2007-05-28",
+      "2011-05-07"
+    ]
+  },
+  "class_distribution_train": {
+    "Medium": 66044,
+    "High": 8668,
+    "Low": 5485,
+    "Critical": 4577
+  },
+  "cv": {
+    "folds": 10,
+    "stratified": true,
+    "selection": "mean macro-F1",
+    "scores": {
+      "svm C=0.1 weight=None": {
+        "accuracy": 0.7806,
+        "macro_f1": 0.2534,
+        "accuracy_std": 0.0008,
+        "macro_f1_std": 0.0045
+      },
+      "svm C=0.1 weight=balanced": {
+        "accuracy": 0.7801,
+        "macro_f1": 0.2447,
+        "accuracy_std": 0.0009,
+        "macro_f1_std": 0.0046
+      },
+      "svm C=0.3 weight=None": {
+        "accuracy": 0.7806,
+        "macro_f1": 0.2398,
+        "accuracy_std": 0.0009,
+        "macro_f1_std": 0.0049
+      },
+      "svm C=0.3 weight=balanced": {
+        "accuracy": 0.7798,
+        "macro_f1": 0.2317,
+        "accuracy_std": 0.0007,
+        "macro_f1_std": 0.0035
+      },
+      "svm C=1.0 weight=None": {
+        "accuracy": 0.7793,
+        "macro_f1": 0.2226,
+        "accuracy_std": 0.0002,
+        "macro_f1_std": 0.0021
+      },
+      "svm C=1.0 weight=balanced": {
+        "accuracy": 0.7792,
+        "macro_f1": 0.221,
+        "accuracy_std": 0.0002,
+        "macro_f1_std": 0.0012
+      },
+      "nb alpha=0.1": {
+        "accuracy": 0.6744,
+        "macro_f1": 0.3617,
+        "accuracy_std": 0.0038,
+        "macro_f1_std": 0.0066
+      },
+      "nb alpha=0.3": {
+        "accuracy": 0.7093,
+        "macro_f1": 0.3464,
+        "accuracy_std": 0.0044,
+        "macro_f1_std": 0.0085
+      },
+      "nb alpha=1.0": {
+        "accuracy": 0.77,
+        "macro_f1": 0.2854,
+        "accuracy_std": 0.0018,
+        "macro_f1_std": 0.0058
+      }
+    }
+  },
+  "chosen_hyperparameters": {
+    "svc_c": 0.1,
+    "svc_class_weight": null,
+    "nb_alpha": 0.1,
+    "rf_trees": 200,
+    "min_df": 3,
+    "max_features": 200000
+  },
+  "tuning_seconds": 636.3,
+  "final_fit_seconds": 47.7
+}

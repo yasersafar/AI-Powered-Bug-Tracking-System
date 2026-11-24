@@ -1,0 +1,45 @@
+@startuml seq-duplicate-check
+title Duplicate check while typing (FR-10, NFR-02)
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+autonumber
+
+actor Reporter
+participant "webview.js" as Js
+participant "ReportBugPanel" as Panel
+participant "ApiClient" as Client
+participant "POST /api/v1/ai/duplicates" as Api
+participant "TriageEngine" as Engine
+participant "TriagePipeline" as Pipeline
+participant "BugIndex\n(DuplicateDetector of the project)" as Index
+
+Reporter -> Js : types title / description
+Js -> Js : debounce 600 ms
+Js -> Panel : postMessage checkDuplicates
+Panel -> Panel : seq = seq + 1
+Panel -> Client : duplicates(project, title, description) (5 s timeout)
+Client -> Api : JSON + Bearer JWT
+Api -> Api : project_access (member only)
+Api -> Engine : run(steps = [duplicates])
+Engine -> Engine : sync_project (new reports of other workers)
+Engine -> Pipeline : run(ctx)
+Pipeline -> Pipeline : embed(text) with MiniLM
+Pipeline -> Index : search(project, text, vector, top_k, min_score)
+Index -> Index : BM25 top-50 candidates
+Index -> Index : score = 0.7 cosine + 0.3 BM25/max
+Index --> Pipeline : candidates >= duplicate_min_score
+Pipeline --> Engine : TriageResult
+Engine --> Api : AiOutcome
+Api --> Client : duplicates, is_likely_duplicate
+Client --> Panel : TriageResponse
+alt seq is still the latest
+  Panel -> Js : replace #duplicates (aria-live)
+  Js --> Reporter : "Possible duplicates" with similarity and links
+else a newer check started
+  Panel -> Panel : ignore stale answer
+end
+opt Reporter decides it is a duplicate
+  Reporter -> Js : Discard
+  Js -> Panel : discard -> confirm -> close (nothing saved)
+end
+@enduml

@@ -1,0 +1,61 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  SNYK-PYTHON-TRANSFORMERS-14560695:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:19:23.908Z
+  SNYK-PYTHON-TRANSFORMERS-14563374:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:19:29.071Z
+  SNYK-PYTHON-TRANSFORMERS-14564275:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:19:34.411Z
+  SNYK-PYTHON-TRANSFORMERS-14564363:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:19:39.507Z
+  SNYK-PYTHON-TRANSFORMERS-14564364:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:19:44.820Z
+  SNYK-PYTHON-TRANSFORMERS-14564365:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:19:50.190Z
+  SNYK-PYTHON-TRANSFORMERS-14564366:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:19:55.480Z
+  SNYK-PYTHON-TRANSFORMERS-19500670:
+    - '*':
+        reason: >-
+          No fix available yet; the project only loads its own pinned local
+          all-MiniLM-L6-v2 model
+        expires: 2027-05-31T00:00:00.000Z
+        created: 2026-11-24T19:20:00.643Z
+patch: {}

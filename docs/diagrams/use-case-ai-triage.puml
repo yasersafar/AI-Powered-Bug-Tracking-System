@@ -1,0 +1,55 @@
+@startuml use-case-ai-triage
+title AI triage – detailed use cases (FR-10, FR-11, FR-12, FR-22, NFR-10)
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam packageStyle rectangle
+
+actor "Reporter" as R
+actor "Developer" as D
+actor "Project Manager" as PM
+actor "Administrator" as A
+actor "AI Service" as AI <<system>>
+
+rectangle "AI triage (backend: triage_service + ml.service)" {
+  usecase "Submit bug report" as UC_Submit
+  usecase "Run AI triage\n(POST /bugs, /ai/triage)" as UC_Triage
+  usecase "Detect duplicates\n(BM25 top-50 -> MiniLM re-rank)" as UC_Dup
+  usecase "Check duplicates while typing\n(POST /ai/duplicates, 600 ms debounce)" as UC_Typing
+  usecase "Classify severity\n(TF-IDF soft-voting ensemble)" as UC_Sev
+  usecase "Recommend developers\n(CNN-LSTM / history + profile)" as UC_Rec
+  usecase "Blend history and profile\n(alpha = min(1, resolved/N))" as UC_Cold
+  usecase "Reserve exploration slot\nfor a new developer (epsilon)" as UC_Explore
+  usecase "Boost fixers of the original\n(likely duplicate)" as UC_Boost
+  usecase "Skip busy developers\n(Critical)" as UC_Filter
+  usecase "Save as Unclassified\nwith notice" as UC_Degrade
+  usecase "Override severity" as UC_Override
+  usecase "Assign recommended developer" as UC_Assign
+  usecase "Switch AI off/on\n(ai_enabled)" as UC_Switch
+  usecase "Train live CNN-LSTM\n(make train-live)" as UC_Train
+}
+
+R --> UC_Submit
+R --> UC_Typing
+D --> UC_Override
+PM --> UC_Override
+PM --> UC_Assign
+A --> UC_Switch
+A --> UC_Train
+
+UC_Submit ..> UC_Triage : <<include>>
+UC_Triage ..> UC_Dup : <<include>>
+UC_Triage ..> UC_Sev : <<include>>
+UC_Triage ..> UC_Rec : <<include>>
+UC_Typing ..> UC_Dup : <<include>>
+UC_Rec ..> UC_Cold : <<include>>
+UC_Explore ..> UC_Rec : <<extend>>\n(with probability epsilon)
+UC_Boost ..> UC_Rec : <<extend>>\n(score >= likely threshold)
+UC_Filter ..> UC_Rec : <<extend>>\n(severity = Critical)
+UC_Degrade ..> UC_Triage : <<extend>>\n(step failed, timed out or AI off)
+UC_Override ..> UC_Sev : <<extend>>
+
+UC_Dup -- AI
+UC_Sev -- AI
+UC_Rec -- AI
+@enduml
