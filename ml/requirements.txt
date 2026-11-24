@@ -1,0 +1,8 @@
+# Inference dependencies (also installed into the backend image in Stage 5). CPU only.
+numpy>=2.2,<3
+scipy>=1.15,<2
+scikit-learn~=1.9
+joblib~=1.6
+rank-bm25==0.2.2
+torch~=2.15
+sentence-transformers~=6.3
