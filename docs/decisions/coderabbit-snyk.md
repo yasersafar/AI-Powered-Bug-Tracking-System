@@ -14,7 +14,7 @@ feature branch --push--> pull request on GitHub
                               |     compose: docker compose config
                               |-- Security workflow: Snyk (.github/workflows/security.yml)
                               |-- CodeRabbit: AI review comments on the diff (.coderabbit.yaml)
-                              `-- human review by another team member -> merge to main
+                              `-- merge to main by a team member
 ```
 
 | | CodeRabbit | Snyk |
@@ -22,7 +22,7 @@ feature branch --push--> pull request on GitHub
 | Role | AI code review of every pull request: summary, line comments, project-specific checks | Security scanning: known vulnerabilities in dependencies (SCA) and insecure code patterns (SAST) |
 | Trigger | Pull requests against `main` (not drafts) | Every pull request, every push to `main`, weekly (Monday 06:00 UTC) for newly published CVEs, and manually |
 | Configuration | `.coderabbit.yaml` | `.github/workflows/security.yml` |
-| Blocks a merge? | No (`request_changes_workflow: false`); comments are advice, the human reviewer decides | The job fails on high or critical findings; branch protection can make it required |
+| Blocks a merge? | No (`request_changes_workflow: false`); comments are advice, the team member who merges decides | The job fails on high or critical findings; branch protection can make it required |
 | One-time setup | Install the CodeRabbit GitHub App on the repository | Add the repository secret `SNYK_TOKEN`; without it the job is skipped with a notice |
 
 ## Configuration used
@@ -40,15 +40,19 @@ feature branch --push--> pull request on GitHub
   (Dockerfile), yamllint, actionlint, markdownlint.
 
 **Snyk** (`.github/workflows/security.yml`):
-* `snyk test` on `backend/pyproject.toml`, `ml/requirements.txt` (the triage models run in
-  the backend) and `extension/package-lock.json`, failing at severity `high`.
+* `snyk test` on the backend dependencies (written from `backend/pyproject.toml` to a temporary
+  requirements file), `ml/requirements.txt` (the triage models run in the backend) and
+  `extension/package-lock.json`, failing at severity `high`.
 * `snyk code test` (static analysis of the Python and TypeScript sources), failing at `high`.
+* `.snyk` keeps the reviewed exceptions, each with its reason: 8 `transformers` dependency
+  issues without a fix (until 31 May 2027), and two Snyk Code false positives
+  (`backend/app/api/attachments.py`, `extension/src/session.ts`) that are excluded from the
+  static analysis only.
 * Read-only repository permissions.
 
 ## Why both
 
 They answer different questions: CodeRabbit "is this change correct and does it follow our
 rules?", Snyk "does this change or its dependencies bring a known security problem?". The
-automated tests and linters in CI remain the hard gate; the human reviewer from another
-team member is the final approval (supervisor requirement: each member's contribution is
-visible through their own pushes and reviews).
+automated tests and linters in CI remain the hard gate; the team member who merges the pull
+request makes the final decision.

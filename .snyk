@@ -58,4 +58,20 @@ ignore:
           all-MiniLM-L6-v2 model
         expires: 2027-05-31T00:00:00.000Z
         created: 2026-11-24T19:20:00.643Z
+# Snyk Code (static analysis) false positives, reviewed by the team on 25 Nov 2026.
+# Snyk Code findings cannot be ignored one by one in this file, so the two files are
+# excluded from `snyk code test` only; dependency scans still cover everything.
+# - backend/app/api/attachments.py ("Path Traversal", FileResponse): the path is built from a
+#   server-generated 32-character hex key stored in the database, never from the request.
+#   storage_path() checks the key against a strict pattern and keeps the resolved path inside
+#   the attachment directory; backend/tests/test_attachments.py tests both
+#   (test_storage_path_rejects_bad_keys, test_path_traversal_filename_is_neutralised).
+# - extension/src/session.ts ("Hardcoded Non-Cryptographic Secret"): "bugTracker.accessToken"
+#   is the name of the VS Code SecretStorage slot, not a secret; the token itself is only
+#   kept in SecretStorage (OS keychain).
+# Review these exclusions whenever either file changes.
+exclude:
+  code:
+    - backend/app/api/attachments.py
+    - extension/src/session.ts
 patch: {}
